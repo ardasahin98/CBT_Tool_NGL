@@ -1,21 +1,18 @@
-/* CBT Tool – corner handles for stretching the boxes.
-   Top row: every box shares one height, and the boxes always fill the row; dragging a
-   corner sideways moves the border shared with the neighbouring box.
-   Workspace: dragging a left-column box sideways sets the column width (the plot panel
-   takes the rest) and dragging down sets that box's height; the plot panel stretches in
-   height and its plots grow with it. Both columns always end at the same height.
-   On narrow screens (stacked layout) only heights change, so the page stays responsive. */
+/* CBT Tool – corner handles for stretching the four boxes in the top row.
+   All four share one height and always fill the row; dragging a corner sideways moves
+   the border shared with the neighbouring box (sizes are kept as proportions, so the
+   row adapts to the window). When the row wraps (narrow screens) only the height changes. */
 "use strict";
 (() => {
 const q = (s) => document.querySelector(s);
-const controls = q(".controls"), ws = q(".ws"), leftcol = q(".leftcol"), rightcol = q(".rightcol");
-const MIN_W = 180, MIN_H = 70, MIN_LEFT = 280, MIN_RIGHT = 420;
+const controls = q(".controls");
+const MIN_W = 180, MIN_H = 70;
 const nCols = (grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 function addHandle(card, mode) {
   const h = document.createElement("span");
-  h.className = "rz" + (mode === "right" || mode === "v" ? " v" : "");
+  h.className = "rz";
   h.title = "Drag to resize";
   h.setAttribute("aria-hidden", "true");
   card.appendChild(h);
@@ -34,11 +31,6 @@ function start(e, card, mode, h) {
     ctx.oneRow = nCols(controls) === ctx.items.length;
     ctx.w = ctx.items.map(c => c.getBoundingClientRect().width);
   }
-  if (mode === "left") {
-    ctx.sideBySide = nCols(ws) === 2;
-    ctx.w0 = leftcol.getBoundingClientRect().width;
-    ctx.maxW = ws.getBoundingClientRect().width - MIN_RIGHT;
-  }
   document.body.classList.add("resizing");
   const move = (ev) => {
     const dx = ev.clientX - x0, dy = ev.clientY - y0;
@@ -52,11 +44,6 @@ function start(e, card, mode, h) {
         // proportions (fr), so the row keeps filling the width when the window changes
         controls.style.setProperty("--ctrl-cols", w.map(v => v.toFixed(1) + "fr").join(" "));
       }
-    } else if (mode === "left") {
-      if (ctx.sideBySide) ws.style.setProperty("--left-w", clamp(ctx.w0 + dx, MIN_LEFT, Math.max(MIN_LEFT, ctx.maxW)) + "px");
-      card.style.height = Math.max(MIN_H, r0.height + dy) + "px";
-    } else {   // "right" (plot panel) and "v" (height only)
-      card.style.height = Math.max(mode === "right" ? 300 : MIN_H, r0.height + dy) + "px";
     }
   };
   const end = () => {
@@ -72,15 +59,11 @@ function start(e, card, mode, h) {
 }
 
 controls.querySelectorAll(":scope > .card").forEach(c => addHandle(c, "ctrl"));
-leftcol.querySelectorAll(".card").forEach(c => addHandle(c, "left"));
-addHandle(rightcol, "right");
-addHandle(q("#emptyState"), "v");
 
 window.cbtResetSizes = () => {
   controls.style.removeProperty("--ctrl-h");
   controls.style.removeProperty("--ctrl-cols");
-  ws.style.removeProperty("--left-w");
-  document.querySelectorAll(".card, .ngl-dlg").forEach(el => { el.style.width = ""; el.style.height = ""; });
+  document.querySelectorAll(".controls > .card, .ngl-dlg").forEach(el => { el.style.width = ""; el.style.height = ""; });
   window.dispatchEvent(new Event("resize"));
 };
 })();

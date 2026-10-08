@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CBT Tool – Input format, method and citation</title>
 <meta name="description" content="Compute cyclic test metrics and estimate cyclic behavior type (CBT) of fine-grained soils from cyclic direct simple shear test records.">
-<link rel="stylesheet" href="css/style.css?v=0.9">
+<link rel="stylesheet" href="css/style.css?v=0.9.6">
 </head>
 <body>
 
@@ -16,9 +16,11 @@
   </div>
   <nav>
     <a href="index.html">Tool</a>
-    <a href="#input">Input format</a>
-    <a href="#method">Method</a>
-    <a href="#cite">Citation</a>
+    <span class="navgroup"><a href="about.html">About</a>:
+      <a href="#input">Input format</a>
+      <a href="#method">Method</a>
+      <a href="#symbols">Symbols</a>
+      <a href="#cite">Citation</a></span>
   </nav>
 </header>
 
@@ -72,8 +74,65 @@
     <h3>Combining analysts</h3>
     <p>Analysts are combined in logit space with equal weights w<sub>i</sub> (Brandenberg and Pretell, 2024):</p>
     <div class="eq">μ<sub>c</sub> = Σ w<sub>i</sub> μ<sub>i</sub>&nbsp;&nbsp;&nbsp;&nbsp; σ<sub>c</sub><sup>2</sup> = Σ w<sub>i</sub> σ<sub>i</sub><sup>2</sup> + Σ w<sub>i</sub> (μ<sub>i</sub> − μ<sub>c</sub>)<sup>2</sup></div>
-    <p>The first term is within-analyst uncertainty and the second is between-analyst (epistemic) uncertainty. The tool reports the median, the 16th–84th percentiles and the mean of this distribution. Individual models are developed for each analyst using a combination of the selected metrics. The metrics used in each analyst's resulting model are presented in the table below.</p>
+    <p>The first term is within-analyst uncertainty and the second is between-analyst (epistemic) uncertainty. In the tool, the combined values μ<sub>c</sub> and σ<sub>c</sub> are displayed as μ<sub>T</sub> and σ<sub>T</sub> (see <a href="#symbols">List of symbols</a>). The tool reports the median, the 16th–84th percentiles and the mean of this distribution. Individual models are developed for each analyst using a combination of the selected metrics. The metrics used in each analyst's resulting model are presented in the table below.</p>
     <div class="tblwrap" style="max-width:640px"><table class="tbl"><thead><tr><th>Analyst</th><th style="text-align:left">Predictors (besides intercept)</th></tr></thead><tbody><tr><td>AJ</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub></td></tr><tr><td>AS</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub>, κ<sub>γ</sub></td></tr><tr><td>AWS</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub></td></tr><tr><td>JPS</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub>, Ratio<sub>Δγ</sub></td></tr><tr><td>KJU</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub>, Ratio<sub>Δγ</sub></td></tr><tr><td>KOC</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub>, κ<sub>γ</sub></td></tr><tr><td>SJB</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub>, κ<sub>γ</sub></td></tr><tr><td>SLK</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub></td></tr><tr><td>TME</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub>, κ<sub>γ</sub></td></tr><tr><td>VR</td><td style="text-align:left">Ratio<sub>hull</sub>, r<sub>u,max</sub>, Ratio<sub>Δγ</sub></td></tr></tbody></table></div>
+  </section>
+
+
+  <section id="symbols">
+    <h2>List of symbols</h2>
+    <p>Symbols and labels shown in the tool. Strains are in percent; stresses and time are in the units selected in box 1 of the tool.</p>
+
+    <h3 id="sym-record">Test record</h3>
+    <div class="tblwrap symtbl"><table class="tbl"><thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th></tr></thead><tbody>
+      <tr><td>τ</td><td>Shear stress</td><td>stress</td></tr>
+      <tr><td>σ′<sub>v</sub></td><td>Vertical effective stress</td><td>stress</td></tr>
+      <tr><td>σ′<sub>v0</sub></td><td>Vertical effective stress at the start of cyclic loading (first row of the file)</td><td>stress</td></tr>
+      <tr><td>γ</td><td>Shear strain</td><td>%</td></tr>
+      <tr><td>γ<sub>SA</sub></td><td>Single-amplitude shear strain: largest |γ| within a cycle</td><td>%</td></tr>
+      <tr><td>γ<sub>DA</sub></td><td>Double-amplitude shear strain: γ<sub>max</sub> − γ<sub>min</sub> within a cycle</td><td>%</td></tr>
+      <tr><td>γ<sub>DA</sub> = 6%</td><td>Minimum strain level; tests that never reach it are not assessed</td><td>%</td></tr>
+      <tr><td>γ<sub>DA</sub> = 9%</td><td>Strain level at which hysteretic behavior has usually stabilized; the first cycle reaching it is marked</td><td>%</td></tr>
+      <tr><td>CSR</td><td>Cyclic stress ratio, τ / σ′<sub>v0</sub> (largest |τ| / σ′<sub>v0</sub> within a cycle)</td><td>–</td></tr>
+      <tr><td>r<sub>u</sub></td><td>Excess pore pressure ratio, (σ′<sub>v0</sub> − σ′<sub>v</sub>) / σ′<sub>v0</sub> = 1 − σ′<sub>v</sub>/σ′<sub>v0</sub></td><td>–</td></tr>
+      <tr><td>N</td><td>Loading cycle number (a cycle starts where τ crosses zero from negative to positive)</td><td>–</td></tr>
+      <tr><td>N<sub>s</sub></td><td>Number of cycles to reach γ<sub>SA</sub> = γ<sub>s</sub> = 3%</td><td>cycles</td></tr>
+    </tbody></table></div>
+
+    <h3 id="sym-metrics">Metrics</h3>
+    <div class="tblwrap symtbl"><table class="tbl"><thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th></tr></thead><tbody>
+      <tr><td>r<sub>u,max</sub></td><td>Largest r<sub>u</sub> within the cycle</td><td>–</td></tr>
+      <tr><td>Ratio<sub>hull</sub></td><td>A<sub>loop</sub> / A<sub>hull</sub>: area under the stress–strain loop divided by the area of its convex hull; lower values mean a pinched (more sand-like) loop</td><td>–</td></tr>
+      <tr><td>A<sub>loop</sub>, A<sub>hull</sub></td><td>Area under the cycle's τ–γ loop; area of the convex hull around it (orange outline in the loop plot)</td><td>stress × %</td></tr>
+      <tr><td>Ratio<sub>Δγ</sub></td><td>Δγ<sub>cyc</sub> / γ<sub>FC</sub>: increase in γ<sub>SA</sub> from the previous cycle, divided by γ<sub>SA</sub> of the first cycle</td><td>–</td></tr>
+      <tr><td>Δγ<sub>cyc</sub></td><td>Increase in γ<sub>SA</sub> relative to the previous cycle</td><td>%</td></tr>
+      <tr><td>γ<sub>FC</sub></td><td>γ<sub>SA</sub> of the first cycle</td><td>%</td></tr>
+      <tr><td>κ<sub>γ</sub></td><td>Strain accumulation curvature: three-point curvature of γ<sub>SA</sub>/γ<sub>s</sub> versus N/N<sub>s</sub> at 10%, 50% and 90% of the record (red points in the strain accumulation plot); one value for the whole record. Positive = accelerating strain accumulation</td><td>–</td></tr>
+      <tr><td>γ<sub>s</sub></td><td>Reference single-amplitude strain, 3%</td><td>%</td></tr>
+      <tr><td>N / N<sub>s</sub></td><td>Cycle number normalized by N<sub>s</sub></td><td>–</td></tr>
+    </tbody></table></div>
+
+    <h3 id="sym-cbt">CBT and its uncertainty</h3>
+    <p>Each analyst model gives a normal distribution of logit(CBT); the analysts are then combined into one distribution (see <a href="#method">Method</a>). All μ and σ values are in logit space.</p>
+    <div class="tblwrap symtbl"><table class="tbl"><thead><tr><th>Symbol</th><th>Meaning</th></tr></thead><tbody>
+      <tr><td>CBT</td><td>Cyclic behavior type, from 0 (clay-like) to 1 (sand-like)</td></tr>
+      <tr><td>logit(CBT)</td><td>log[CBT / (1 − CBT)]; the models work in this space</td></tr>
+      <tr><td>μ<sub>T</sub></td><td>Mean of logit(CBT). For one analyst it is μ<sub>i</sub>; for the combined result it is μ<sub>c</sub>, the equal-weight average of the selected analysts</td></tr>
+      <tr><td>σ<sub>T</sub></td><td>Standard deviation of logit(CBT): the total uncertainty. For one analyst σ<sub>T</sub><sup>2</sup> = σ coef.<sup>2</sup> + σ̂ model<sup>2</sup>; for the combined result σ<sub>T</sub><sup>2</sup> = σ within<sup>2</sup> + σ between<sup>2</sup></td></tr>
+      <tr><td>σ coef.</td><td>Uncertainty from the model coefficients (spread of the prediction over the posterior samples)</td></tr>
+      <tr><td>σ̂ model</td><td>Model standard deviation: scatter of the analyst's own CBT assignments around the fitted model</td></tr>
+      <tr><td>σ within</td><td>Within-analyst uncertainty: the weighted average of the analysts' σ<sub>T</sub> (root of Σ w<sub>i</sub> σ<sub>i</sub><sup>2</sup>), i.e. how uncertain each analyst's own estimate is</td></tr>
+      <tr><td>σ between</td><td>Between-analyst uncertainty: spread of the analysts' μ<sub>T</sub> around the combined μ<sub>T</sub> (root of Σ w<sub>i</sub>(μ<sub>i</sub> − μ<sub>c</sub>)<sup>2</sup>), i.e. how much the analysts disagree</td></tr>
+      <tr><td>Median</td><td>expit(μ<sub>T</sub>) = 1 / (1 + e<sup>−μ<sub>T</sub></sup>); the value shown as the main CBT result and as the line on the gauge</td></tr>
+      <tr><td>Mean</td><td>Mean of the CBT distribution; differs from the median because the logit transformation is not linear</td></tr>
+      <tr><td>16–84%</td><td>CBT range between the 16th and 84th percentiles, expit(μ<sub>T</sub> ± σ<sub>T</sub>); the shaded band on the gauge</td></tr>
+      <tr><td>5–95%</td><td>CBT range between the 5th and 95th percentiles, expit(μ<sub>T</sub> ± 1.645 σ<sub>T</sub>)</td></tr>
+      <tr><td>Weight, w<sub>i</sub></td><td>Weight of each selected analyst in the combination (equal weights, 1 / number of selected analysts)</td></tr>
+      <tr><td>Analysts</td><td>Number of analyst models used out of the ten available (select them in the Analyst models box)</td></tr>
+    </tbody></table></div>
+
+    <h3 id="sym-analysts">Analysts</h3>
+    <p>AJ, AS, AWS, JPS, KJU, KOC, SJB, SLK, TME and VR are the initials of the ten analysts who assigned CBT to the calibration tests. The metrics used by each analyst's model are listed in the <a href="#method">Method</a> section.</p>
   </section>
 
   <section id="cite">
@@ -83,6 +142,6 @@
   </section>
 </div>
 
-<footer>CBT Tool · v0.9</footer>
+<footer>CBT Tool · v0.9.6</footer>
 </body>
 </html>

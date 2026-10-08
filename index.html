@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CBT Tool – Cyclic Behavior Type from CDSS Tests</title>
 <meta name="description" content="Compute cyclic test metrics and estimate cyclic behavior type (CBT) of fine-grained soils from cyclic direct simple shear test records.">
-<link rel="stylesheet" href="css/style.css?v=0.9.5">
+<link rel="stylesheet" href="css/style.css?v=0.9.6">
 <script src="vendor/plotly.min.js"></script>
 </head>
 <body>
@@ -17,9 +17,12 @@
   </div>
   <nav>
     <a href="#tool">Tool</a>
-    <a href="about.html#input">Input format</a>
-    <a href="about.html#method">Method</a>
-    <a href="about.html#cite">Citation</a>
+    <!-- About pages open in a new tab so loaded tests are kept -->
+    <span class="navgroup"><a href="about.html" target="_blank" rel="noopener">About</a>:
+      <a href="about.html#input" target="_blank" rel="noopener">Input format</a>
+      <a href="about.html#method" target="_blank" rel="noopener">Method</a>
+      <a href="about.html#symbols" target="_blank" rel="noopener">Symbols</a>
+      <a href="about.html#cite" target="_blank" rel="noopener">Citation</a></span>
   </nav>
 </header>
 
@@ -87,6 +90,7 @@
       <li>Download the CSV template and fill in one file per test.</li>
       <li>Upload one or more files, load an example, or load tests from the NGL database.</li>
       <li>Review the metrics and CBT at the last cycle, or pick any other cycle.</li>
+      <li>Hover over a value for a short description, or see the <a href="about.html#symbols" target="_blank" rel="noopener">list of symbols</a>.</li>
     </ol>
   </div>
 
@@ -96,6 +100,7 @@
       <div class="card">
         <div class="testhead">
           <h2 id="tName"></h2>
+          <div class="symline"><a class="symlink" href="about.html#sym-record" target="_blank" rel="noopener" title="Open the list of symbols in a new tab">ⓘ Symbols</a></div>
           <div class="facts" id="tFacts"></div>
         </div>
         <div id="tBanner"></div>
@@ -123,11 +128,12 @@
           </div>
           <div class="gauge-labels"><span>0 · clay-like</span><span>0.5</span><span>sand-like · 1</span></div>
           <div class="kv" id="rKV"></div>
+          <div class="symfoot"><a class="symlink" href="about.html#sym-cbt" target="_blank" rel="noopener" title="Open the list of symbols in a new tab">ⓘ What do these symbols mean?</a></div>
         </div>
         <div class="card compact">
           <h2>Metrics at <span id="mCycle"></span></h2>
           <div class="metrics" id="metricGrid"></div>
-          <div class="metrics-legend">κ<sub>γ</sub>: whole record.</div>
+          <div class="metrics-legend">κ<sub>γ</sub>: whole record.<a class="symlink" href="about.html#sym-metrics" target="_blank" rel="noopener" title="Open the list of symbols in a new tab">ⓘ Metric definitions</a></div>
         </div>
       </div>
     </div>
@@ -172,6 +178,7 @@
       </div>
 
       <div class="tabpane" id="tab-table">
+        <div class="row small" style="justify-content:flex-end;margin-bottom:6px"><a class="symlink" href="about.html#sym-cbt" target="_blank" rel="noopener" title="Open the list of symbols in a new tab">ⓘ Symbols</a></div>
         <div class="tblwrap"><table class="tbl" id="aTable"></table></div>
         <p class="muted small">μ<sub>T</sub>, σ<sub>T</sub>: mean and standard deviation in logit space. σ<sub>T</sub> combines coefficient (posterior) uncertainty and the model standard deviation σ̂. Combined σ<sub>T</sub> adds the between-analyst term.</p>
       </div>
@@ -217,11 +224,11 @@
   </div>
 </dialog>
 
-<footer>CBT Tool · v0.9.5 · Boxes can be stretched from their bottom-right corner · <a href="#" id="resetSizes">Reset box sizes</a></footer>
+<footer>CBT Tool · v0.9.6 · The top boxes can be stretched from their bottom-right corner · <a href="#" id="resetSizes">Reset box sizes</a></footer>
 
-<script src="js/app.js?v=0.9.5"></script>
-<script src="js/resize.js?v=0.9.5"></script>
+<script src="js/app.js?v=0.9.6"></script>
+<script src="js/resize.js?v=0.9.6"></script>
 <script src="js/config.js?v=0.9"></script>
-<script src="js/ngl.js?v=0.9.5"></script>
+<script src="js/ngl.js?v=0.9.6"></script>
 </body>
 </html>

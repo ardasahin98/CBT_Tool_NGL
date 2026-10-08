@@ -6,6 +6,25 @@ const ANALYST_COLORS = {
   KOC: "#edc948", SJB: "#b07aa1", SLK: "#ff9da7", TME: "#9c755f", VR: "#6b6ecf",
 };
 const METRIC_LABEL = { hull: "Ratio<sub>hull</sub>", ru: "r<sub>u,max</sub>", dgamma: "Ratio<sub>Δγ</sub>", kappa: "κ<sub>γ</sub>" };
+// one-line descriptions shown on hover (full list: about.html#symbols)
+const TIP = {
+  median: "Median CBT = expit(μT); the main result and the line on the gauge",
+  mean: "Mean of the CBT distribution (differs from the median because of the logit transformation)",
+  p16: "CBT range between the 16th and 84th percentiles, expit(μT ± σT); the shaded band on the gauge",
+  p05: "CBT range between the 5th and 95th percentiles, expit(μT ± 1.645 σT)",
+  mu: "μT: mean of logit(CBT) = log[CBT/(1 − CBT)], equal-weight average over the selected analysts",
+  sigma: "σT: total standard deviation of logit(CBT); σT² = σ within² + σ between²",
+  within: "σ within: average uncertainty of the individual analyst estimates (root of Σ wi σi²)",
+  between: "σ between: how much the analysts disagree; spread of their μT around the combined μT",
+  analysts: "Number of analyst models used (select them in the Analyst models box)",
+  coef: "σ coef.: uncertainty from the model coefficients (spread over the posterior samples)",
+  model: "σ̂ model: scatter of the analyst's own CBT assignments around the fitted model",
+  weight: "Weight of the analyst in the combination (equal weights over the selected analysts)",
+  ru: "r_u,max: largest excess pore pressure ratio (σ′v0 − σ′v)/σ′v0 within the cycle",
+  hull: "Ratio_hull = A_loop/A_hull: loop area over the area of its convex hull; lower = pinched, more sand-like",
+  dgamma: "Ratio_Δγ = Δγcyc/γFC: increase in single-amplitude strain from the previous cycle over the first-cycle strain",
+  kappa: "κγ: curvature of γSA/3% versus N/Ns at 10%, 50% and 90% of the record (whole record); positive = accelerating",
+};
 const METRIC_TXT = { hull: "Ratio_hull", ru: "r_u,max", dgamma: "Ratio_Δγ", kappa: "κ_γ" };
 
 // Units: stress and time are labels only (every metric uses stress or time ratios);
@@ -370,25 +389,25 @@ function renderCycleNow() {
     $("gBand").style.left = (cb.p16 * 100) + "%"; $("gBand").style.width = ((cb.p84 - cb.p16) * 100) + "%";
     $("gMed").style.left = (cb.median * 100) + "%";
     $("rKV").innerHTML = [
-      ["Median", fmt(cb.median, 3)], ["Mean", fmt(cb.mean, 3)],
-      ["16–84%", `${fmt(cb.p16, 2)}–${fmt(cb.p84, 2)}`], ["5–95%", `${fmt(cb.p05, 2)}–${fmt(cb.p95, 2)}`],
-      ["μ<sub>T</sub>", fmt(cb.mu_T, 3)], ["σ<sub>T</sub>", fmt(cb.sigma_T, 3)],
-      ["σ within", fmt(cb.sd_within, 3)], ["σ between", fmt(cb.sd_between, 3)],
-      ["Analysts", `${cb.n} of ${state.analysts.length}`],
-    ].map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join("");
+      ["Median", fmt(cb.median, 3), TIP.median], ["Mean", fmt(cb.mean, 3), TIP.mean],
+      ["16–84%", `${fmt(cb.p16, 2)}–${fmt(cb.p84, 2)}`, TIP.p16], ["5–95%", `${fmt(cb.p05, 2)}–${fmt(cb.p95, 2)}`, TIP.p05],
+      ["μ<sub>T</sub>", fmt(cb.mu_T, 3), TIP.mu], ["σ<sub>T</sub>", fmt(cb.sigma_T, 3), TIP.sigma],
+      ["σ within", fmt(cb.sd_within, 3), TIP.within], ["σ between", fmt(cb.sd_between, 3), TIP.between],
+      ["Analysts", `${cb.n} of ${state.analysts.length}`, TIP.analysts],
+    ].map(([k, v, tip]) => `<span class="tip" title="${tip}">${k}</span><span title="${tip}">${v}</span>`).join("");
   } else {
     $("rMedian").textContent = "–"; $("rNote").textContent = "select at least one analyst";
     $("gBand").style.width = 0; $("gMed").style.left = "-10px"; $("rKV").innerHTML = "";
   }
 
   const M = [
-    ["r<sub>u,max</sub>", c.ru, "max. in cycle"],
-    ["Ratio<sub>hull</sub>", c.hull, "A<sub>loop</sub>/A<sub>hull</sub>"],
-    ["Ratio<sub>Δγ</sub>", c.dgamma, "Δγ<sub>cyc</sub>/γ<sub>FC</sub>"],
-    ["κ<sub>γ</sub>", c.kappa, "whole record", fmtK],
+    ["r<sub>u,max</sub>", c.ru, "max. in cycle", null, TIP.ru],
+    ["Ratio<sub>hull</sub>", c.hull, "A<sub>loop</sub>/A<sub>hull</sub>", null, TIP.hull],
+    ["Ratio<sub>Δγ</sub>", c.dgamma, "Δγ<sub>cyc</sub>/γ<sub>FC</sub>", null, TIP.dgamma],
+    ["κ<sub>γ</sub>", c.kappa, "whole record", fmtK, TIP.kappa],
   ];
-  $("metricGrid").innerHTML = M.map(([n, v, u, f]) =>
-    `<div class="metric model"><div class="mn">${n}</div><div class="mv">${(f || fmtG)(v)}</div><div class="mu">${u}</div></div>`).join("");
+  $("metricGrid").innerHTML = M.map(([n, v, u, f, tip]) =>
+    `<div class="metric model" title="${tip}"><div class="mn">${n}</div><div class="mv">${(f || fmtG)(v)}</div><div class="mu">${u}</div></div>`).join("");
 
   if (state.tab === "record") renderRecordCycle(t, c);
   if (state.tab === "evol") renderEvol(t);
@@ -711,8 +730,8 @@ function renderTable(t, c) {
   }).join("");
   const cb = combine(c);
   const comb = cb ? `<tr class="combined"><td>Combined</td><td></td><td>${fmt(cb.mu_T)}</td><td>${fmt(cb.sigma_T)}</td><td colspan="2" style="text-align:center">within ${fmt(cb.sd_within)} · between ${fmt(cb.sd_between)}</td><td>${fmt(cb.median)}</td><td>${fmt(cb.p16)} – ${fmt(cb.p84)}</td><td>1</td></tr>` : "";
-  $("aTable").innerHTML = `<thead><tr><th>Analyst</th><th style="text-align:left">Predictors</th><th>μ<sub>T</sub></th><th>σ<sub>T</sub></th>
-    <th>σ coef.</th><th>σ̂ model</th><th>Median CBT</th><th>16–84%</th><th>Weight</th></tr></thead><tbody>${rows}${comb}</tbody>`;
+  $("aTable").innerHTML = `<thead><tr><th>Analyst</th><th style="text-align:left">Predictors</th><th title="${TIP.mu}">μ<sub>T</sub></th><th title="${TIP.sigma}">σ<sub>T</sub></th>
+    <th title="${TIP.coef}">σ coef.</th><th title="${TIP.model}">σ̂ model</th><th title="${TIP.median}">Median CBT</th><th title="${TIP.p16}">16–84%</th><th title="${TIP.weight}">Weight</th></tr></thead><tbody>${rows}${comb}</tbody>`;
 }
 
 /* boxes can be stretched from their bottom-right corner; this puts them back */

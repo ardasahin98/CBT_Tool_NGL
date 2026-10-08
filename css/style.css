@@ -433,7 +433,6 @@ html { scroll-padding-top: 64px; }   /* anchors (#input, #method, #cite) land be
   cursor: nwse-resize; touch-action: none; opacity: .5; border-bottom-right-radius: var(--radius);
   background: linear-gradient(135deg, transparent 0 48%, #8792a2 48% 55%, transparent 55% 68%, #8792a2 68% 75%, transparent 75%);
 }
-.rz.v { cursor: ns-resize; }
 .rz:hover, body.resizing .rz { opacity: 1; }
 body.resizing { user-select: none; -webkit-user-select: none; }
 body.resizing .plot, body.resizing iframe { pointer-events: none; }
@@ -446,15 +445,6 @@ body.resizing .plot, body.resizing iframe { pointer-events: none; }
 .controls .upload { display: flex; flex-direction: column; }
 .controls .upload .files { flex: 1 1 66px; min-height: 66px; max-height: none; overflow: auto; }
 
-/* workspace: left column width set by dragging; both columns end at the same height */
-@media (min-width: 901px) {
-  .ws { grid-template-columns: var(--left-w, 330px) minmax(0, 1fr); align-items: stretch; }
-}
-.leftcol { display: flex; flex-direction: column; }
-.leftcol > .results { flex: 1 0 auto; display: flex; flex-direction: column; }
-.leftcol > .results > .card:last-child { flex: 1 0 auto; }
-.leftcol .card { overflow: auto; }
-.rightcol.card { overflow: hidden auto; }
 .empty.card { min-height: 120px; }
 
 /* NGL window: native corner resize */
@@ -463,3 +453,21 @@ body.resizing .plot, body.resizing iframe { pointer-events: none; }
 .ngl-dlg .ngl-tblwrap { max-height: none; min-height: 160px; }
 footer a { color: inherit; }
 @media (max-width: 900px) { .ws { grid-template-columns: minmax(0, 1fr); } }
+
+/* v0.9.6: About menu group, links to the list of symbols, hover descriptions */
+.topbar nav { align-items: baseline; flex-wrap: wrap; }
+.navgroup { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; color: #8fa3bb; }
+.navgroup > a:first-child { font-weight: 600; margin-right: -10px; }
+.symlink { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.symlink:hover { text-decoration: underline; }
+.symline { display: flex; justify-content: flex-end; margin: -2px 0 4px; }
+.leftcol .testhead { position: relative; }
+.kv .tip, .tbl th[title], .metric[title] { cursor: help; }
+.kv .tip { text-decoration: underline dotted #b5bdc8; text-underline-offset: 2px; }
+.symtbl { max-width: 980px; margin: 6px 0 10px; }
+.symtbl .tbl td, .symtbl .tbl th { text-align: left; vertical-align: top; }
+.symtbl .tbl td:first-child { white-space: nowrap; font-weight: 600; width: 130px; }
+.symtbl .tbl td:last-child:not(:nth-child(2)) { white-space: nowrap; color: var(--ink-2); }
+@media (max-width: 640px) { .topbar nav { gap: 6px 12px; } .navgroup { gap: 4px 10px; } }
+.symfoot { display: flex; justify-content: flex-end; margin-top: 6px; }
+.metrics-legend { display: flex; align-items: baseline; gap: 8px; }
