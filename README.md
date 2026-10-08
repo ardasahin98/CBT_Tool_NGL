@@ -80,9 +80,11 @@ Any static host works too: Netlify, Cloudflare Pages, or a UCLA web server.
 
 Notes
 
-- "Cyclic stages only" uses the first short text field of the stage (or, failing that, of the
-  DSS test) whose values contain "cyc". If no such field exists, all stages are listed and the
-  dialog says so.
+- Loading type and drainage follow the NGL schema (`schema/tables/DSSS.html`):
+  `DSSS_TY` = 0 consolidation, 1 monotonic loading, 2 cyclic loading; `DSSS_DR` = 0 drained,
+  1 undrained. "Cyclic stages only" keeps stages with `DSSS_TY = 2`. e0 and w0 are `DSSG_E0`
+  and `DSSG_W0`; LL and PL are `PLAS_LL` and `PLAS_PL` (joined by `SPEC_ID`); Citation ID comes
+  from `LAB_PROGRAMP` (Lab programs ↔ Citations).
 - `DSSS_DATA` is parsed with the same clean-up as `Data_Int` in `ngl_def_v2.py`
   (HTML-escaped quotes, empty list entries).
 - **CORS.** Browsers block a page from calling another site's API unless that site allows it,

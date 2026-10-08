@@ -20,9 +20,7 @@ const EP = {
   progs: "/lab-programs/api-index",
   progCit: "/lab-program-citations/api-index",
   labs: "/labs/api-index",
-  fieldTests: "/field-tests/api-index",
-  sites: "/sites/api-index",
-  plas: "/plasticity-tests/api-index",
+    plas: "/plasticity-tests/api-index",
 };
 const CORS_HELP = "The browser could not reach the NGL API from this page. This usually means NGL does not yet " +
   "allow requests from this website (CORS). On Vercel, make sure vercel.json is deployed; locally, run serve.py; " +
@@ -155,6 +153,19 @@ async function opt(label, fn) {
 const byKey = (arr, k) => { const m = new Map(); for (const r of arr) if (has(r[k]) && !m.has(String(r[k]))) m.set(String(r[k]), r); return m; };
 const groupBy = (arr, k) => { const m = new Map(); for (const r of arr) { const key = String(r[k]); if (!m.has(key)) m.set(key, []); m.get(key).push(r); } return m; };
 const pick = (o, keys) => { if (!o) return ""; for (const k of keys) if (has(o[k])) return o[k]; return ""; };
+const LOADING_TYPE = { 0: "consolidation", 1: "monotonic", 2: "cyclic" };
+// MySQL BIT/INT values may arrive as 1, "1", true, "\u0001" or "b'1'"
+function bitOrInt(v) {
+  if (v === true) return 1;
+  if (v === false) return 0;
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    if (v.length === 1 && v.charCodeAt(0) < 32) return v.charCodeAt(0);
+    const m = v.match(/-?\d+/);
+    return m ? +m[0] : null;
+  }
+  return null;
+}
 const firstKey = (o, re) => o ? Object.keys(o).find(k => re.test(k)) : undefined;
 
 /* ------------------------------------------------------------------ */
@@ -179,11 +190,10 @@ async function loadList() {
   const saMap = byKey(samps, "SAMP_ID");
   const sampIds = samps.map(s => s.SAMP_ID);
 
-  const [progSamp, progs, labs, fieldTests, plas] = await Promise.all([
+  const [progSamp, progs, labs, plas] = await Promise.all([
     opt("Lab programs ↔ samples", () => apiIn(EP.progSamp, "SAMP_ID", sampIds)),
     opt("Lab programs", () => apiAll(EP.progs)),
     opt("Labs", () => apiAll(EP.labs)),
-    opt("Field tests", () => apiIn(EP.fieldTests, "TEST_ID", samps.map(s => s.TEST_ID))),
     opt("Plasticity tests", async () => {
       const p = await api(EP.plas, { limit: 1 });
       if (!p.length) return [];
@@ -193,31 +203,18 @@ async function loadList() {
       rows._key = k; return rows;
     }),
   ]);
-  const sites = await opt("Sites", () => apiIn(EP.sites, "SITE_ID", fieldTests.map(t => t.SITE_ID)));
   const psMap = groupBy(progSamp, "SAMP_ID"), pMap = byKey(progs, "LAB_PROGRAM_ID"), lMap = byKey(labs, "LAB_ID");
-  const ftMap = byKey(fieldTests, "TEST_ID"), siMap = byKey(sites, "SITE_ID");
   const plKey = plas._key, plMap = plKey ? byKey(plas, plKey) : new Map();
-  const llKey = firstKey(plas[0], /(^|_)LL$/i), piKey = firstKey(plas[0], /(^|_)PI$/i);
+  const llKey = "PLAS_LL", piKey = null;
   const labName = (l) => pick(l, ["LAB_NAME", "LAB_DESC", "LAB_ABBR", "LAB_INST"]) || (l ? String(l.LAB_ID) : "");
 
-  // Loading type (consolidation / monotonic / cyclic) and drainage are short categorical
-  // text fields; find them by their values, preferring stage-level (DSSS) over test-level (DSSG).
-  const score = (objs, re) => {
-    const sc = {};
-    for (const o of objs) for (const [k, v] of Object.entries(o || {}))
-      if (typeof v === "string" && v.length < 40 && re.test(v) && !/_ID$/i.test(k)) sc[k] = (sc[k] || 0) + 1;
-    const best = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
-    return best ? best[0] : null;
-  };
-  const LOAD_RE = /cyc|monoton|consol/i, DRAIN_RE = /drain/i;
-  const stKey = score(stages, LOAD_RE);
-  S.typeKey = stKey || score(tests, LOAD_RE);
-  S.cyclicKnown = !!S.typeKey && [...stages, ...tests].some(o => /cyc/i.test(String((o || {})[S.typeKey] ?? "")));
-  const sdKey = score(stages, DRAIN_RE), tdKey = sdKey ? null : score(tests, DRAIN_RE);
-  // e0 and w0 may sit on the DSS test or on the specimen
-  const numKey = (re) => { for (const arr of [tests, specs, stages]) { const k = firstKey(arr[0], re); if (k) return k; } return null; };
-  const e0Key = numKey(/(^|_)E0$/i), w0Key = numKey(/(^|_)W0$/i);
-  const plPlKey = firstKey(plas[0], /(^|_)PL$/i);
+  // Codes from the NGL schema (tables/DSSS.html):
+  //   DSSS_TY  type of stage: 0 = consolidation, 1 = monotonic loading, 2 = cyclic loading
+  //   DSSS_DR  drained (0) or undrained (1)
+  S.typeKey = "DSSS_TY";
+  S.cyclicKnown = stages.some(st => has(st.DSSS_TY));
+  const e0Key = "DSSG_E0", w0Key = "DSSG_W0";
+  const plPlKey = "PLAS_PL";
   // citation IDs of each lab program (Lab programs <-> Citations junction)
   const progCit = await opt("Lab program citations", () => apiIn(EP.progCit, "LAB_PROGRAM_ID", progSamp.map(x => x.LAB_PROGRAM_ID)));
   const citKey = firstKey(progCit[0], /CIT.*_ID$/i);
@@ -231,24 +228,23 @@ async function loadList() {
     const plist = (psMap.get(String(sa.SAMP_ID)) || []).map(x => pMap.get(String(x.LAB_PROGRAM_ID))).filter(Boolean);
     const progsTxt = [...new Set(plist.map(p => pick(p, ["LAB_PROGRAM_DESC", "LAB_PROGRAM_NAME"]) || `Program ${p.LAB_PROGRAM_ID}`))];
     const labsTxt = [...new Set(plist.map(p => labName(lMap.get(String(p.LAB_ID)))).filter(has))];
-    const ft = ftMap.get(String(sa.TEST_ID)) || {};
-    const si = siMap.get(String(ft.SITE_ID)) || {};
     const pl = plMap.get(String(plKey === "SPEC_ID" ? sp.SPEC_ID : sa.SAMP_ID)) || {};
-    const raw = Object.assign({}, si, ft, sa, sp, t, st);
+    const raw = Object.assign({}, sa, sp, t, st);
     Object.keys(raw).forEach(k => keys.add(k));
-    const typeVal = S.typeKey ? (stKey ? st[S.typeKey] : t[S.typeKey]) : "";
-    const drain = sdKey ? st[sdKey] : (tdKey ? t[tdKey] : "");
+    const typeCode = bitOrInt(st.DSSS_TY), drCode = bitOrInt(st.DSSS_DR);
+    const typeVal = LOADING_TYPE[typeCode] ?? (has(st.DSSS_TY) ? `type ${st.DSSS_TY}` : "");
+    const drain = drCode === 1 ? "undrained" : drCode === 0 ? "drained" : "";
     const fromAny = (k) => (k ? (t[k] ?? sp[k] ?? st[k] ?? "") : "");
     const cits = citKey ? [...new Set(plist.flatMap(p => (pcMap.get(String(p.LAB_PROGRAM_ID)) || []).map(c => c[citKey])).filter(has))] : [];
     const row = {
       id: st.DSSS_ID, stage: st.DSSS_ST ?? "", test: st.DSSG_ID ?? "",
       prog: progsTxt.join("; "), progs: progsTxt, lab: labsTxt.join("; "), labs: labsTxt,
-      site: pick(si, ["SITE_NAME"]), samp: pick(sa, ["SAMP_NAME"]), spec: pick(sp, ["SPEC_REF", "SPEC_NAME"]),
-      type: typeVal ?? "", cyclic: S.cyclicKnown ? /cyc/i.test(String(typeVal)) : true, drain: drain ?? "",
+      samp: pick(sa, ["SAMP_NAME"]), spec: pick(sp, ["SPEC_REF", "SPEC_NAME"]),
+      type: typeVal, cyclic: S.cyclicKnown ? typeCode === 2 : true, drain,
       cit: cits.join(", "), e0: fromAny(e0Key), w0: fromAny(w0Key),
       ll: llKey ? (pl[llKey] ?? "") : "", pl: plPlKey ? (pl[plPlKey] ?? "") : "", pi: piKey ? (pl[piKey] ?? "") : "", raw,
     };
-    row._txt = [row.prog, row.lab, row.site, row.samp, row.spec, row.type, row.id, row.test,
+    row._txt = [row.prog, row.lab, row.samp, row.spec, row.type, row.id, row.test,
       ...Object.values(raw).filter(v => typeof v === "string" && v.length < 200)].join(" ").toLowerCase();
     return row;
   });
@@ -416,7 +412,7 @@ document.addEventListener("click", (e) => {
 
 function fillFilters() {
   $("nglCyclic").disabled = !S.cyclicKnown;
-  $("nglCyclic").closest("label").title = S.cyclicKnown ? `Stages whose ${S.typeKey} contains "cyc"` : "Cyclic stages could not be identified";
+  $("nglCyclic").closest("label").title = S.cyclicKnown ? "Stages with DSSS_TY = 2 (cyclic loading)" : "Cyclic stages could not be identified";
   $("nglAddCol").innerHTML = `<option value="">Add column…</option>` +
     S.rawKeys.filter(k => !S.extraCols.includes(k)).map(k => `<option>${esc(k)}</option>`).join("");
 }
