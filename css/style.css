@@ -471,3 +471,24 @@ footer a { color: inherit; }
 @media (max-width: 640px) { .topbar nav { gap: 6px 12px; } .navgroup { gap: 4px 10px; } }
 .symfoot { display: flex; justify-content: flex-end; margin-top: 6px; }
 .metrics-legend { display: flex; align-items: baseline; gap: 8px; }
+
+/* v0.9.7: "About" dropdown */
+.navdrop { position: relative; }
+.navdrop-btn {
+  background: none; border: 0; color: #d6e2f0; font: inherit; font-size: 13px; cursor: pointer;
+  padding: 0; display: inline-flex; align-items: center; gap: 4px;
+}
+.navdrop-btn:hover, .navdrop.open .navdrop-btn { color: #fff; }
+.navdrop .caret { font-size: 10px; transition: transform .15s; }
+.navdrop.open .caret { transform: rotate(180deg); }
+.navdrop-menu {
+  display: none; position: absolute; right: 0; top: 100%; margin-top: 8px; min-width: 190px; z-index: 60;
+  background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(10, 20, 35, .18); padding: 6px 0;
+}
+.navdrop-menu::before { content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }   /* hover bridge */
+.navdrop.open .navdrop-menu { display: block; }
+.topbar nav .navdrop-menu a { display: block; padding: 7px 14px; color: var(--ink); font-size: 13.5px; text-decoration: none; white-space: nowrap; }
+.topbar nav .navdrop-menu a:hover, .topbar nav .navdrop-menu a:focus { background: var(--accent-soft); color: var(--accent); outline: none; }
+.navdrop-btn { -webkit-tap-highlight-color: transparent; border-radius: 4px; }
+.navdrop-btn:focus { outline: none; }
+.navdrop-btn:focus-visible { outline: 2px solid #8fb8e6; outline-offset: 3px; }

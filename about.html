@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CBT Tool – Input format, method and citation</title>
 <meta name="description" content="Compute cyclic test metrics and estimate cyclic behavior type (CBT) of fine-grained soils from cyclic direct simple shear test records.">
-<link rel="stylesheet" href="css/style.css?v=0.9.6">
+<link rel="stylesheet" href="css/style.css?v=0.9.7">
 </head>
 <body>
 
@@ -16,11 +16,15 @@
   </div>
   <nav>
     <a href="index.html">Tool</a>
-    <span class="navgroup"><a href="about.html">About</a>:
-      <a href="#input">Input format</a>
-      <a href="#method">Method</a>
-      <a href="#symbols">Symbols</a>
-      <a href="#cite">Citation</a></span>
+    <div class="navdrop">
+      <button type="button" class="navdrop-btn" aria-haspopup="true" aria-expanded="false">About <span class="caret" aria-hidden="true">▾</span></button>
+      <div class="navdrop-menu" role="menu">
+        <a role="menuitem" href="#input">Input format</a>
+        <a role="menuitem" href="#method">Method</a>
+        <a role="menuitem" href="#symbols">List of symbols</a>
+        <a role="menuitem" href="#cite">Citation</a>
+      </div>
+    </div>
   </nav>
 </header>
 
@@ -143,5 +147,6 @@
 </div>
 
 <footer>CBT Tool · v0.9.6</footer>
+<script src="js/nav.js?v=0.9.7"></script>
 </body>
 </html>

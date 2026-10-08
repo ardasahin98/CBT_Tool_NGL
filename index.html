@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CBT Tool – Cyclic Behavior Type from CDSS Tests</title>
 <meta name="description" content="Compute cyclic test metrics and estimate cyclic behavior type (CBT) of fine-grained soils from cyclic direct simple shear test records.">
-<link rel="stylesheet" href="css/style.css?v=0.9.6">
+<link rel="stylesheet" href="css/style.css?v=0.9.7">
 <script src="vendor/plotly.min.js"></script>
 </head>
 <body>
@@ -18,11 +18,15 @@
   <nav>
     <a href="#tool">Tool</a>
     <!-- About pages open in a new tab so loaded tests are kept -->
-    <span class="navgroup"><a href="about.html" target="_blank" rel="noopener">About</a>:
-      <a href="about.html#input" target="_blank" rel="noopener">Input format</a>
-      <a href="about.html#method" target="_blank" rel="noopener">Method</a>
-      <a href="about.html#symbols" target="_blank" rel="noopener">Symbols</a>
-      <a href="about.html#cite" target="_blank" rel="noopener">Citation</a></span>
+    <div class="navdrop">
+      <button type="button" class="navdrop-btn" aria-haspopup="true" aria-expanded="false">About <span class="caret" aria-hidden="true">▾</span></button>
+      <div class="navdrop-menu" role="menu">
+        <a role="menuitem" href="about.html#input" target="_blank" rel="noopener">Input format</a>
+        <a role="menuitem" href="about.html#method" target="_blank" rel="noopener">Method</a>
+        <a role="menuitem" href="about.html#symbols" target="_blank" rel="noopener">List of symbols</a>
+        <a role="menuitem" href="about.html#cite" target="_blank" rel="noopener">Citation</a>
+      </div>
+    </div>
   </nav>
 </header>
 
@@ -230,5 +234,6 @@
 <script src="js/resize.js?v=0.9.6"></script>
 <script src="js/config.js?v=0.9"></script>
 <script src="js/ngl.js?v=0.9.6"></script>
+<script src="js/nav.js?v=0.9.7"></script>
 </body>
 </html>
