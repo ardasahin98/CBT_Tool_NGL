@@ -421,3 +421,30 @@ html { scroll-padding-top: 64px; }   /* anchors (#input, #method, #cite) land be
 .ngl-tbl tbody tr:hover { background: #e8eef5; }
 .ngl-tbl tbody tr.sel, .ngl-tbl tbody tr.sel:nth-child(even) { background: var(--accent-soft); }
 .ngl-tbl tbody td:nth-child(3) { text-align: left; }   /* lab program: long text */
+
+/* ================= v0.9.4: hidden fix + resizable boxes ================= */
+/* layout rules such as .ws { display: grid } must not override the hidden attribute */
+[hidden] { display: none !important; }
+
+/* every box can be stretched from its bottom-right corner */
+.card { resize: both; overflow: auto; min-width: 200px; min-height: 60px; max-width: calc(100vw - 24px); }
+.empty.card { min-height: 120px; }
+/* a widened results box widens the left column (the plots take the rest) */
+.ws { grid-template-columns: minmax(330px, min-content) minmax(0, 1fr); }
+.leftcol .card { max-width: min(900px, calc(100vw - 24px)); }
+/* the plot panel already fills the remaining width, so it stretches in height */
+.rightcol.card { resize: vertical; max-width: 100%; overflow: hidden auto; }
+.ngl-dlg { resize: both; overflow: hidden; min-width: 340px; min-height: 280px; max-width: 98vw; max-height: 96vh; }
+.ngl-dlg #nglBrowse { min-height: 0; }
+.ngl-dlg .ngl-tblwrap { max-height: none; min-height: 160px; }
+footer a { color: inherit; }
+
+/* keep narrow screens responsive: ignore widths set by stretching, keep heights */
+@media (max-width: 900px) {
+  .ws { grid-template-columns: minmax(0, 1fr); }
+  .card { width: auto !important; max-width: 100%; }
+  .leftcol .card { max-width: 100%; }
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  .ws { grid-template-columns: minmax(300px, min-content) minmax(0, 1fr); }
+}

@@ -233,8 +233,14 @@ function removeTest(id) {
   renderFiles();
   if (state.current !== null) selectTest(state.current); else showEmpty();
 }
+// No files left: return the page to its starting state.
 function showEmpty() {
   $("emptyState").hidden = false; $("testView").hidden = true; $("exportCycles").disabled = true;
+  document.querySelectorAll("#testView .plot").forEach(el => { try { Plotly.purge(el); } catch (e) { /* not drawn yet */ } el.removeAttribute("style"); });
+  ["tName", "tFacts", "tBanner", "cycInfo", "rCycle", "mCycle", "rKV", "metricGrid", "aTable"].forEach(id => { $(id).innerHTML = ""; });
+  $("rMedian").textContent = "–"; $("rNote").textContent = "";
+  state.cycle = 1;
+  document.querySelector('#tabs button[data-tab="record"]').click();
 }
 
 /* ------------------------------------------------------------------ */
@@ -412,8 +418,11 @@ const legendBelow = (b = 110) => ({ showlegend: true, legend: { orientation: "h"
 // tab fits in the window; when the page stacks (narrow screens) only width matters.
 const stacked = () => window.innerWidth <= 900;
 function availFrom(el) {
-  if (stacked()) return Infinity;
   const top = el.getBoundingClientRect().top + window.scrollY;
+  // plot panel stretched by the user (corner handle): plots fill the panel instead of the window
+  const rc = el.closest(".rightcol");
+  if (rc && rc.style.height) return Math.max(260, rc.getBoundingClientRect().bottom + window.scrollY - top - 22);
+  if (stacked()) return Infinity;
   return Math.max(340, window.innerHeight - top - 22);
 }
 function setCols(grid, cols) { if (grid.dataset.cols !== String(cols)) grid.dataset.cols = cols; return cols; }
@@ -463,10 +472,12 @@ function scheduleResize() {
 }
 window.addEventListener("resize", scheduleResize);
 if (window.ResizeObserver) {
-  let lastW = 0;
+  let lastW = 0, lastH = 0;
   new ResizeObserver(entries => {
-    const w = Math.round(entries[0].contentRect.width);
-    if (w !== lastW) { lastW = w; scheduleResize(); }
+    const r = entries[0].contentRect, w = Math.round(r.width), h = Math.round(r.height);
+    // height changes only matter when the user has set the panel height (otherwise they come from the plots)
+    const userH = !!entries[0].target.style.height;
+    if (w !== lastW || (userH && h !== lastH)) { lastW = w; lastH = h; scheduleResize(); }
   }).observe(document.querySelector(".rightcol"));
 }
 
@@ -703,6 +714,13 @@ function renderTable(t, c) {
   $("aTable").innerHTML = `<thead><tr><th>Analyst</th><th style="text-align:left">Predictors</th><th>μ<sub>T</sub></th><th>σ<sub>T</sub></th>
     <th>σ coef.</th><th>σ̂ model</th><th>Median CBT</th><th>16–84%</th><th>Weight</th></tr></thead><tbody>${rows}${comb}</tbody>`;
 }
+
+/* boxes can be stretched from their bottom-right corner; this puts them back */
+$("resetSizes").addEventListener("click", (e) => {
+  e.preventDefault();
+  document.querySelectorAll(".card, .ngl-dlg").forEach(el => { el.style.width = ""; el.style.height = ""; });
+  scheduleResize();
+});
 
 /* tabs */
 document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => {
