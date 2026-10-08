@@ -718,8 +718,7 @@ function renderTable(t, c) {
 /* boxes can be stretched from their bottom-right corner; this puts them back */
 $("resetSizes").addEventListener("click", (e) => {
   e.preventDefault();
-  document.querySelectorAll(".card, .ngl-dlg").forEach(el => { el.style.width = ""; el.style.height = ""; });
-  scheduleResize();
+  if (window.cbtResetSizes) window.cbtResetSizes();
 });
 
 /* tabs */
