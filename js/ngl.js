@@ -24,8 +24,8 @@ const EP = {
   plas: "/plasticity-tests/api-index",
 };
 const CORS_HELP = "The browser could not reach the NGL API from this page. This usually means NGL does not yet " +
-  "allow requests from this website (CORS). Run the tool locally with serve.py, or set a proxy in js/config.js " +
-  "(see README, \"NGL database connection\").";
+  "allow requests from this website (CORS). On Vercel, make sure vercel.json is deployed; locally, run serve.py; " +
+  "elsewhere, set a proxy in js/config.js (see README, \"NGL database connection\").";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -64,10 +64,12 @@ function tokenExpiry(tok) {
 }
 function candidates() {
   const c = [];
-  if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) c.push(location.origin + "/ngl");  // serve.py relay
-  if (CFG.base) c.push(CFG.base.replace(/\/+$/, ""));
-  if (CFG.proxy) c.push(CFG.proxy.replace(/\/+$/, ""));
-  return [...new Set(c)];
+  // Same-address relay first: vercel.json (Vercel) or serve.py (local) forward /ngl/... to NGL,
+  // so the browser never makes a cross-origin request.
+  if (/^https?:$/.test(location.protocol)) c.push({ base: location.origin + "/ngl", name: "relay on this site (/ngl)" });
+  if (CFG.base) c.push({ base: CFG.base.replace(/\/+$/, ""), name: "NGL directly" });
+  if (CFG.proxy) c.push({ base: CFG.proxy.replace(/\/+$/, ""), name: "proxy in config.js" });
+  return c;
 }
 async function readJSON(r) {
   const t = await r.text();
@@ -81,21 +83,24 @@ function errMsg(j, t, status) {
 
 async function signIn(user, pass) {
   const auth = "Basic " + b64(user + ":" + pass);
-  for (const base of candidates()) {
+  const tried = [];
+  for (const { base, name } of candidates()) {
     let r;
     try {
       r = await fetch(base + EP.token, { headers: { Accept: "application/json", Authorization: auth }, cache: "no-store", credentials: "omit" });
-    } catch (e) { continue; }   // blocked (CORS) or unreachable: try the next address
+    } catch (e) { tried.push(`${name}: blocked by the browser (CORS) or unreachable`); continue; }
     const { j, t } = await readJSON(r);
     if (j && j.token) {
       S.token = j.token; S.exp = tokenExpiry(j.token); S.user = user; S.base = base; S.rows = null;
       saveSession(); return;
     }
-    if (j === null && [404, 405, 501].includes(r.status)) continue;   // no relay at this address
+    if (j === null) {   // not a JSON answer: no relay at this address, or an HTML error page
+      tried.push(`${name}: HTTP ${r.status}, not an NGL API response`); continue;
+    }
     if (r.status === 401 || r.status === 403) throw new Error("Sign-in failed. Check your NGL username (or email) and password.");
     throw new Error("Sign-in failed: " + errMsg(j, t, r.status));
   }
-  throw new Error(CORS_HELP);
+  throw new Error(CORS_HELP + " Tried: " + tried.join("; ") + ".");
 }
 
 /* ------------------------------------------------------------------ */

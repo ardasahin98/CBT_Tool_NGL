@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/ngl/users/api-token", "destination": "https://nextgenerationliquefaction.org/users/api-token" },
+    { "source": "/ngl/:table/api-index", "destination": "https://nextgenerationliquefaction.org/:table/api-index" }
+  ],
+  "headers": [
+    { "source": "/ngl/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+  ]
+}

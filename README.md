@@ -16,6 +16,7 @@ its REST API (see "NGL database connection" below).
 | `about.html` | Input format, method and citation page |
 | `js/ngl.js`, `js/config.js` | NGL sign-in, test-stage browser and loader; API address and optional proxy |
 | `serve.py` | Local web server with a relay to the NGL API (`/ngl/...`) |
+| `vercel.json` | Same `/ngl/...` relay when the site is hosted on Vercel |
 | `proxy/` | Optional Cloudflare Worker relay for the published site (only if NGL does not allow the site's origin) |
 | `js/worker.js` | Web worker that starts Pyodide and calls the Python code |
 | `py/cbt_core.py` | Metric and CBT code. The top half is copied verbatim from `ngl_def_v2.py` (`Data_Smooth` … `ru_calc`, `Ns_calculation`, `three_point_curvature`); the bottom half adds hull ratio, Ratio_Δγ, κγ, CBT prediction and the analyst combination |
@@ -82,9 +83,16 @@ Notes
   dialog says so.
 - `DSSS_DATA` is parsed with the same clean-up as `Data_Int` in `ngl_def_v2.py`
   (HTML-escaped quotes, empty list entries).
-- **CORS.** The published site calls the NGL API from the user's browser. This works only if
-  NGL sends CORS headers for the site's origin. If sign-in on the published site reports that
-  the API cannot be reached, either ask the NGL administrators to allow the origin or deploy
-  the relay in `proxy/` and set its URL in `js/config.js` (see `proxy/README.md`).
-  The tool tries, in order: the local `serve.py` relay (on localhost only), the direct NGL
-  address, and the configured proxy.
+- **CORS.** Browsers block a page from calling another site's API unless that site allows it,
+  and NGL does not send CORS headers. The tool therefore calls the API through a relay on its
+  own address, `/ngl/...`:
+  - **Vercel:** `vercel.json` rewrites `/ngl/users/api-token` and `/ngl/<table>/api-index` to
+    `https://nextgenerationliquefaction.org`. Vercel forwards the request server-side, so it
+    works with no extra service. Keep `vercel.json` at the repository root.
+  - **Local:** `python serve.py` provides the same `/ngl/...` relay.
+  - **GitHub Pages or other static hosts** cannot relay. Either ask the NGL administrators to
+    allow the site's origin, or deploy the Cloudflare Worker in `proxy/` and set its URL in
+    `js/config.js` (see `proxy/README.md`).
+
+  The tool tries, in order: the `/ngl` relay on the same address, NGL directly, and the
+  configured proxy. If all fail, the error message lists what happened with each.
