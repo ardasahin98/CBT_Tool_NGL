@@ -62,15 +62,17 @@ Any static host works too: Netlify, Cloudflare Pages, or a UCLA web server.
 
 "Load from NGL database" (box 2) opens a dialog:
 
-1. **Sign in** with an NGL username/email and password. The browser sends them once, as HTTP
+1. **Sign in** with an NGL account email and password (the token endpoint accepts the email, not the username). The browser sends them once, as HTTP
    Basic auth, to `GET /users/api-token` and receives a bearer token that is valid for 2 hours.
    The password is not stored. The token is kept in `sessionStorage` (this tab only) and the
    remaining time is shown next to the button; after 2 hours the user is asked to sign in again.
 2. **Browse** the direct simple shear test stages (`/direct-simple-shear-test-stages/api-index`,
    without the `DSSS_DATA` time series). Labels are joined from the DSS tests, specimens,
-   samples, lab programs, labs, field tests/sites and plasticity tests endpoints. Filters:
-   search text, lab program, lab, site, "Cyclic stages only", and "Include unreviewed data"
-   (`includeUnreviewed=1`). Columns sort on click; any other NGL field can be added as a column.
+   samples, lab programs, lab program citations, labs and plasticity tests endpoints. The table
+   has the same columns as the NGL lab test viewer (Lab, Lab Program, Citation ID, Sample,
+   Specimen, e0, w0, LL, PL, Stage, Loading Type, Drainage) with a search box under each
+   header; headers sort on click and any other NGL field can be added as a column.
+   "Cyclic stages only" and "Include unreviewed data" (`includeUnreviewed=1`) are on by default.
 3. **Load** the selected stages: the tool downloads `DSSS_DATA` for those stages only
    (`where=DSSS_ID IN (...)`), converts each to the template layout
    (`DSSS_TIME, DSSS_TAU, DSSS_SIGV, DSSS_YHV, DSSS_EPSV`, units s, kPa, %) and adds it to the

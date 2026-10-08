@@ -18,6 +18,7 @@ const EP = {
   samps: "/samples/api-index",
   progSamp: "/lab-programs-samples/api-index",
   progs: "/lab-programs/api-index",
+  progCit: "/lab-program-citations/api-index",
   labs: "/labs/api-index",
   fieldTests: "/field-tests/api-index",
   sites: "/sites/api-index",
@@ -32,8 +33,8 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<":
 const has = (v) => v !== null && v !== undefined && v !== "";
 const S = {
   token: null, exp: 0, user: "", base: null,
-  rows: null, typeKey: null, cyclicKnown: false, rawKeys: [], extraCols: [], warnings: [],
-  sel: new Set(), sort: { k: "prog", dir: 1 }, unrev: false, busy: false,
+  rows: null, typeKey: null, colFilter: {}, cyclicKnown: false, rawKeys: [], extraCols: [], warnings: [],
+  sel: new Set(), sort: { k: "prog", dir: 1 }, unrev: true, busy: false,
 };
 
 /* ------------------------------------------------------------------ */
@@ -97,7 +98,7 @@ async function signIn(user, pass) {
     if (j === null) {   // not a JSON answer: no relay at this address, or an HTML error page
       tried.push(`${name}: HTTP ${r.status}, not an NGL API response`); continue;
     }
-    if (r.status === 401 || r.status === 403) throw new Error("Sign-in failed. Check your NGL username (or email) and password.");
+    if (r.status === 401 || r.status === 403) throw new Error("Sign-in failed. Check your NGL email and password.");
     throw new Error("Sign-in failed: " + errMsg(j, t, r.status));
   }
   throw new Error(CORS_HELP + " Tried: " + tried.join("; ") + ".");
@@ -199,19 +200,28 @@ async function loadList() {
   const llKey = firstKey(plas[0], /(^|_)LL$/i), piKey = firstKey(plas[0], /(^|_)PI$/i);
   const labName = (l) => pick(l, ["LAB_NAME", "LAB_DESC", "LAB_ABBR", "LAB_INST"]) || (l ? String(l.LAB_ID) : "");
 
-  // field that tells cyclic from other stages: a short categorical value containing "cyc",
-  // preferring stage-level (DSSS) fields over test-level (DSSG) fields
-  const score = (objs) => {
+  // Loading type (consolidation / monotonic / cyclic) and drainage are short categorical
+  // text fields; find them by their values, preferring stage-level (DSSS) over test-level (DSSG).
+  const score = (objs, re) => {
     const sc = {};
     for (const o of objs) for (const [k, v] of Object.entries(o || {}))
-      if (typeof v === "string" && v.length < 40 && /cyc/i.test(v) && !/_ID$/i.test(k)) sc[k] = (sc[k] || 0) + 1;
+      if (typeof v === "string" && v.length < 40 && re.test(v) && !/_ID$/i.test(k)) sc[k] = (sc[k] || 0) + 1;
     const best = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
     return best ? best[0] : null;
   };
-  const stKey = score(stages);
-  const tKey = stKey ? null : score(tests);
-  S.typeKey = stKey || tKey;
-  S.cyclicKnown = !!S.typeKey;
+  const LOAD_RE = /cyc|monoton|consol/i, DRAIN_RE = /drain/i;
+  const stKey = score(stages, LOAD_RE);
+  S.typeKey = stKey || score(tests, LOAD_RE);
+  S.cyclicKnown = !!S.typeKey && [...stages, ...tests].some(o => /cyc/i.test(String((o || {})[S.typeKey] ?? "")));
+  const sdKey = score(stages, DRAIN_RE), tdKey = sdKey ? null : score(tests, DRAIN_RE);
+  // e0 and w0 may sit on the DSS test or on the specimen
+  const numKey = (re) => { for (const arr of [tests, specs, stages]) { const k = firstKey(arr[0], re); if (k) return k; } return null; };
+  const e0Key = numKey(/(^|_)E0$/i), w0Key = numKey(/(^|_)W0$/i);
+  const plPlKey = firstKey(plas[0], /(^|_)PL$/i);
+  // citation IDs of each lab program (Lab programs <-> Citations junction)
+  const progCit = await opt("Lab program citations", () => apiIn(EP.progCit, "LAB_PROGRAM_ID", progSamp.map(x => x.LAB_PROGRAM_ID)));
+  const citKey = firstKey(progCit[0], /CIT.*_ID$/i);
+  const pcMap = groupBy(progCit, "LAB_PROGRAM_ID");
 
   const keys = new Set();
   S.rows = stages.map(st => {
@@ -227,12 +237,16 @@ async function loadList() {
     const raw = Object.assign({}, si, ft, sa, sp, t, st);
     Object.keys(raw).forEach(k => keys.add(k));
     const typeVal = S.typeKey ? (stKey ? st[S.typeKey] : t[S.typeKey]) : "";
+    const drain = sdKey ? st[sdKey] : (tdKey ? t[tdKey] : "");
+    const fromAny = (k) => (k ? (t[k] ?? sp[k] ?? st[k] ?? "") : "");
+    const cits = citKey ? [...new Set(plist.flatMap(p => (pcMap.get(String(p.LAB_PROGRAM_ID)) || []).map(c => c[citKey])).filter(has))] : [];
     const row = {
       id: st.DSSS_ID, stage: st.DSSS_ST ?? "", test: st.DSSG_ID ?? "",
       prog: progsTxt.join("; "), progs: progsTxt, lab: labsTxt.join("; "), labs: labsTxt,
       site: pick(si, ["SITE_NAME"]), samp: pick(sa, ["SAMP_NAME"]), spec: pick(sp, ["SPEC_REF", "SPEC_NAME"]),
-      type: typeVal ?? "", cyclic: S.typeKey ? /cyc/i.test(String(typeVal)) : true,
-      ll: llKey ? (pl[llKey] ?? "") : "", pi: piKey ? (pl[piKey] ?? "") : "", raw,
+      type: typeVal ?? "", cyclic: S.cyclicKnown ? /cyc/i.test(String(typeVal)) : true, drain: drain ?? "",
+      cit: cits.join(", "), e0: fromAny(e0Key), w0: fromAny(w0Key),
+      ll: llKey ? (pl[llKey] ?? "") : "", pl: plPlKey ? (pl[plPlKey] ?? "") : "", pi: piKey ? (pl[piKey] ?? "") : "", raw,
     };
     row._txt = [row.prog, row.lab, row.site, row.samp, row.spec, row.type, row.id, row.test,
       ...Object.values(raw).filter(v => typeof v === "string" && v.length < 200)].join(" ").toLowerCase();
@@ -324,16 +338,16 @@ async function loadSelected() {
 /* ------------------------------------------------------------------ */
 /*  UI                                                                 */
 /* ------------------------------------------------------------------ */
+// Same columns as the NGL lab test viewer's metadata table
 const COLS = [
-  { k: "prog", t: "Lab program" }, { k: "lab", t: "Lab" }, { k: "site", t: "Site" },
-  { k: "samp", t: "Sample" }, { k: "spec", t: "Specimen" }, { k: "test", t: "DSS test", num: true },
-  { k: "stage", t: "Stage", num: true }, { k: "type", t: "Type" },
-  { k: "ll", t: "LL", num: true }, { k: "pi", t: "PI", num: true }, { k: "id", t: "Stage ID", num: true },
+  { k: "lab", t: "Lab", ph: "labs" }, { k: "prog", t: "Lab Program", ph: "lab programs" },
+  { k: "cit", t: "Citation ID", ph: "citation IDs" }, { k: "samp", t: "Sample", ph: "samples" },
+  { k: "spec", t: "Specimen", ph: "specimens" }, { k: "e0", t: "e<sub>0</sub>", num: true },
+  { k: "w0", t: "w<sub>0</sub>", num: true }, { k: "ll", t: "LL", num: true }, { k: "pl", t: "PL", num: true },
+  { k: "stage", t: "Stage", ph: "stages", num: true }, { k: "type", t: "Loading Type", ph: "types" },
+  { k: "drain", t: "Drainage", ph: "drainage" },
 ];
-function visibleCols() {
-  const base = COLS.filter(c => S.rows.some(r => has(r[c.k])));
-  return base.concat(S.extraCols.map(k => ({ k: "raw:" + k, t: k, raw: k })));
-}
+const visibleCols = () => COLS.concat(S.extraCols.map(k => ({ k: "raw:" + k, t: esc(k), raw: k, ph: "values" })));
 const cellVal = (r, c) => (c.raw ? r.raw[c.raw] : r[c.k]);
 
 function status(msg, isErr = false, html = false) {
@@ -361,13 +375,14 @@ function showBrowse() {
 async function refresh() {
   busy(true);
   $("nglTable").innerHTML = "";
+  $("nglUnrev").checked = S.unrev;
   try {
     await loadList();
     fillFilters();
-    render();
+    render(true);
     const n = S.rows.length;
     let msg = n ? "" : "No direct simple shear test stages were returned. Try \"Include unreviewed data\".";
-    if (n && !S.cyclicKnown) msg = "Cyclic stages could not be identified from the NGL fields, so all DSS stages are listed. Use the search box or an added column to narrow the list.";
+    if (n && !S.cyclicKnown) msg = "Cyclic stages could not be identified from the NGL fields, so all DSS stages are listed. Use the column search boxes to narrow the list.";
     if (S.warnings.length) msg += (msg ? " " : "") + "Some details could not be read (" + S.warnings.join("; ") + ").";
     status(msg);
   } catch (e) {
@@ -400,52 +415,51 @@ document.addEventListener("click", (e) => {
 });
 
 function fillFilters() {
-  const opts = (id, vals, all) => {
-    const cnt = new Map();
-    vals.forEach(v => { if (has(v)) cnt.set(v, (cnt.get(v) || 0) + 1); });
-    const cur = $(id).value;
-    $(id).innerHTML = `<option value="">${all}</option>` + [...cnt.keys()].sort((a, b) => String(a).localeCompare(String(b)))
-      .map(v => `<option value="${esc(v)}">${esc(v)} (${cnt.get(v)})</option>`).join("");
-    $(id).value = cnt.has(cur) ? cur : "";
-    $(id).closest("label").hidden = cnt.size === 0;
-  };
-  opts("nglProg", S.rows.flatMap(r => r.progs), "All lab programs");
-  opts("nglLab", S.rows.flatMap(r => r.labs), "All labs");
-  opts("nglSite", S.rows.map(r => r.site), "All sites");
   $("nglCyclic").disabled = !S.cyclicKnown;
   $("nglCyclic").closest("label").title = S.cyclicKnown ? `Stages whose ${S.typeKey} contains "cyc"` : "Cyclic stages could not be identified";
   $("nglAddCol").innerHTML = `<option value="">Add column…</option>` +
     S.rawKeys.filter(k => !S.extraCols.includes(k)).map(k => `<option>${esc(k)}</option>`).join("");
 }
 function filtered() {
-  const terms = $("nglSearch").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const fp = $("nglProg").value, fl = $("nglLab").value, fs = $("nglSite").value;
   const cyc = $("nglCyclic").checked && S.cyclicKnown;
-  const out = S.rows.filter(r => (!cyc || r.cyclic) && (!fp || r.progs.includes(fp)) && (!fl || r.labs.includes(fl)) &&
-    (!fs || r.site === fs) && terms.every(t => r._txt.includes(t)));
-  const c = visibleCols().find(x => x.k === S.sort.k) || COLS[0];
+  const cols = visibleCols();
+  const fl = cols.map(c => [c, (S.colFilter[c.k] || "").trim().toLowerCase()]).filter(x => x[1]);
+  const out = S.rows.filter(r => (!cyc || r.cyclic) &&
+    fl.every(([c, q]) => String(cellVal(r, c) ?? "").toLowerCase().includes(q)));
+  const c = cols.find(x => x.k === S.sort.k) || COLS[0];
   const num = (v) => (has(v) && isFinite(+v) ? +v : null);
   out.sort((a, b) => {
     const x = cellVal(a, c), y = cellVal(b, c), nx = num(x), ny = num(y);
     let d = (nx !== null && ny !== null) ? nx - ny : String(x ?? "").localeCompare(String(y ?? ""), undefined, { numeric: true });
-    if (!d) d = String(a.samp).localeCompare(String(b.samp), undefined, { numeric: true }) || (num(a.stage) || 0) - (num(b.stage) || 0);
+    if (!d) d = String(a.spec).localeCompare(String(b.spec), undefined, { numeric: true }) || (num(a.stage) || 0) - (num(b.stage) || 0);
     return d * S.sort.dir;
   });
   return out;
 }
-function render() {
+// Header (titles + one search box per column) is drawn only when columns or sorting change,
+// so typing in a search box never loses focus; the body is redrawn on every keystroke.
+function renderHead() {
+  const cols = visibleCols();
+  const titles = cols.map(c => `<th data-k="${esc(c.k)}" title="Sort">${c.t}${S.sort.k === c.k ? (S.sort.dir > 0 ? " ▲" : " ▼") : ""}` +
+    `${c.raw ? ` <button class="x" data-rmcol="${esc(c.raw)}" title="Remove column">×</button>` : ""}</th>`).join("");
+  const boxes = cols.map(c => c.ph
+    ? `<td><input type="search" class="ngl-colq" data-q="${esc(c.k)}" placeholder="Search for ${c.ph}…" value="${esc(S.colFilter[c.k] || "")}"></td>`
+    : "<td></td>").join("");
+  $("nglTable").innerHTML = `<thead><tr class="ngl-titles"><th><input type="checkbox" id="nglAllBox" title="Select all shown"></th>${titles}</tr>` +
+    `<tr class="ngl-qrow"><td></td>${boxes}</tr></thead><tbody id="nglBody"></tbody>`;
+}
+function render(head = false) {
   if (!S.rows) return;
+  if (head || !$("nglBody")) renderHead();
   const cols = visibleCols(), rows = filtered();
   const shown = rows.slice(0, MAX_ROWS_DRAWN);
-  const allSel = shown.length && shown.every(r => S.sel.has(String(r.id)));
-  const th = cols.map(c => `<th data-k="${esc(c.k)}" class="${c.num ? "num" : ""}">${esc(c.t)}${S.sort.k === c.k ? (S.sort.dir > 0 ? " ▲" : " ▼") : ""}${c.raw ? ` <button class="x" data-rmcol="${esc(c.raw)}" title="Remove column">×</button>` : ""}</th>`).join("");
-  const body = shown.map(r => {
+  $("nglAllBox").checked = shown.length > 0 && shown.every(r => S.sel.has(String(r.id)));
+  $("nglBody").innerHTML = shown.map(r => {
     const id = String(r.id), on = S.sel.has(id);
     return `<tr data-id="${esc(id)}" class="${on ? "sel" : ""}${r.cyclic ? "" : " noncyc"}"><td><input type="checkbox" ${on ? "checked" : ""}></td>` +
       cols.map(c => `<td class="${c.num ? "num" : ""}" title="${esc(cellVal(r, c))}">${esc(cellVal(r, c))}</td>`).join("") + "</tr>";
   }).join("");
-  $("nglTable").innerHTML = `<thead><tr><th><input type="checkbox" id="nglAllBox" title="Select all shown" ${allSel ? "checked" : ""}></th>${th}</tr></thead><tbody>${body}</tbody>`;
-  const more = rows.length > shown.length ? ` (first ${MAX_ROWS_DRAWN} drawn; narrow the filters)` : "";
+  const more = rows.length > shown.length ? ` (first ${MAX_ROWS_DRAWN} drawn; narrow the search)` : "";
   $("nglCount").textContent = `${rows.length} of ${S.rows.length} stages shown${more} · ${S.sel.size} selected`;
   $("nglLoad").disabled = S.busy || !S.sel.size;
   $("nglLoad").textContent = S.sel.size ? `Load ${S.sel.size} selected into the tool` : "Load selected into the tool";
@@ -473,26 +487,29 @@ function init() {
       $("nglLoginErr").hidden = false; $("nglLoginErr").textContent = err.message;
     } finally { $("nglSignIn").disabled = false; $("nglSignIn").textContent = "Sign in"; }
   });
-  ["nglSearch"].forEach(id => $(id).addEventListener("input", render));
-  ["nglProg", "nglLab", "nglSite", "nglCyclic"].forEach(id => $(id).addEventListener("change", render));
+  $("nglCyclic").addEventListener("change", () => render());
+  $("nglTable").addEventListener("input", (e) => {
+    if (e.target.dataset.q) { S.colFilter[e.target.dataset.q] = e.target.value; render(); }
+  });
   $("nglUnrev").addEventListener("change", (e) => { S.unrev = e.target.checked; refresh(); });
   $("nglRefresh").onclick = refresh;
   $("nglAddCol").addEventListener("change", (e) => {
-    if (e.target.value) { S.extraCols.push(e.target.value); fillFilters(); render(); }
+    if (e.target.value) { S.extraCols.push(e.target.value); fillFilters(); render(true); }
   });
   $("nglSelAll").onclick = () => { filtered().forEach(r => S.sel.add(String(r.id))); render(); };
   $("nglSelNone").onclick = () => { S.sel.clear(); render(); };
   $("nglLoad").onclick = loadSelected;
   $("nglTable").addEventListener("click", (e) => {
     const rm = e.target.closest("[data-rmcol]");
-    if (rm) { S.extraCols = S.extraCols.filter(k => k !== rm.dataset.rmcol); fillFilters(); render(); return; }
+    if (rm) { delete S.colFilter["raw:" + rm.dataset.rmcol]; S.extraCols = S.extraCols.filter(k => k !== rm.dataset.rmcol); fillFilters(); render(true); return; }
     if (e.target.id === "nglAllBox") {
       const rows = filtered().slice(0, MAX_ROWS_DRAWN);
       rows.forEach(r => (e.target.checked ? S.sel.add(String(r.id)) : S.sel.delete(String(r.id))));
       render(); return;
     }
     const thEl = e.target.closest("th[data-k]");
-    if (thEl) { const k = thEl.dataset.k; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : 1 }; render(); return; }
+    if (thEl) { const k = thEl.dataset.k; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : 1 }; render(true); return; }
+    if (e.target.closest("thead")) return;   // clicks in the search row
     const tr = e.target.closest("tbody tr");
     if (tr) { const id = tr.dataset.id; S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id); render(); }
   });
