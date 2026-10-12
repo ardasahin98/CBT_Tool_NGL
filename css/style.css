@@ -492,3 +492,12 @@ footer a { color: inherit; }
 .navdrop-btn { -webkit-tap-highlight-color: transparent; border-radius: 4px; }
 .navdrop-btn:focus { outline: none; }
 .navdrop-btn:focus-visible { outline: 2px solid #8fb8e6; outline-offset: 3px; }
+
+/* v0.9.8: export box, License button, license page */
+.exportcard .exp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.exportcard .exp + .exp { margin-top: 6px; }
+.exportcard .exp-l { flex: 0 0 64px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+footer .lic-btn { color: var(--ink-2); padding: 2px 9px; font-size: 12px; text-decoration: none; margin-left: 2px; }
+footer .lic-btn:hover { color: var(--accent); border-color: var(--accent); }
+.license-doc h3 { margin-top: 18px; }
+.license-doc .lic-cite { padding-left: 14px; border-left: 3px solid var(--line); }

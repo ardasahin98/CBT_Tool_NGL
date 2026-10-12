@@ -180,8 +180,9 @@ function setUnits(time, stress, strain) {
 /*  Files                                                              */
 /* ------------------------------------------------------------------ */
 let nextId = 1;
-function addTest(name, text, select = false) {
-  const t = { id: nextId++, name, text, status: "queued", units: Object.assign({}, U) };
+function addTest(name, text, select = false, meta = null) {
+  // meta: where the test came from (NGL records or the uploaded file), used by the downloads in export.js
+  const t = { id: nextId++, name, text, status: "queued", units: Object.assign({}, U), meta: meta || { source: "upload", on: new Date().toString() } };
   state.tests.push(t);
   if (state.current === null || select) state.current = t.id;
   renderFiles(); pump();
@@ -195,9 +196,9 @@ function readFiles(files) {
   });
 }
 // Used by js/ngl.js to add test stages downloaded from the NGL database.
-window.cbtAddTest = (name, text, units, select) => {
+window.cbtAddTest = (name, text, units, select, meta) => {
   if (units) setUnits(units.time, units.stress, units.strain);
-  addTest(name, text, !!select);
+  addTest(name, text, !!select, meta);
 };
 window.cbtHasTest = (name) => state.tests.some(t => t.name === name);
 $("fileInput").addEventListener("change", (e) => { readFiles(e.target.files); e.target.value = ""; });
@@ -245,6 +246,7 @@ function renderFiles() {
     });
     ul.appendChild(li);
   }
+  if (typeof updateExportButtons === "function") updateExportButtons();
 }
 function removeTest(id) {
   state.tests = state.tests.filter(t => t.id !== id);
@@ -254,7 +256,7 @@ function removeTest(id) {
 }
 // No files left: return the page to its starting state.
 function showEmpty() {
-  $("emptyState").hidden = false; $("testView").hidden = true; $("exportCycles").disabled = true;
+  $("emptyState").hidden = false; $("testView").hidden = true;
   document.querySelectorAll("#testView .plot").forEach(el => { try { Plotly.purge(el); } catch (e) { /* not drawn yet */ } el.removeAttribute("style"); });
   ["tName", "tFacts", "tBanner", "cycInfo", "rCycle", "mCycle", "rKV", "metricGrid", "aTable"].forEach(id => { $(id).innerHTML = ""; });
   $("rMedian").textContent = "–"; $("rNote").textContent = "";
@@ -306,14 +308,12 @@ function selectTest(id) {
     document.querySelector(".cyclebar").style.display = "none";
     $("tabs").style.display = "none";
     document.querySelectorAll(".tabpane").forEach(p => p.style.display = "none");
-    $("exportCycles").disabled = true;
     return;
   }
   document.querySelector(".results").style.display = "";
   document.querySelector(".cyclebar").style.display = "";
   $("tabs").style.display = "";
   document.querySelectorAll(".tabpane").forEach(p => p.style.display = "");
-  $("exportCycles").disabled = false;
   state.cycle = evalCycle(t);
   renderTest(true);
 }
@@ -749,30 +749,4 @@ document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click
   window.dispatchEvent(new Event("resize"));
 }));
 
-/* ------------------------------------------------------------------ */
-/*  Export                                                             */
-/* ------------------------------------------------------------------ */
-function download(name, text) {
-  const blob = new Blob([text], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-const csvVal = (v) => (v === null || v === undefined || (typeof v === "number" && !isFinite(v))) ? "" : (typeof v === "number" ? +v.toPrecision(8) : `"${String(v).replace(/"/g, '""')}"`);
-const activeList = () => state.analysts.filter(a => state.active.has(a));
-
-$("exportCycles").onclick = () => {
-  const t = curTest(); if (!t) return;
-  const act = activeList();
-  const cols = ["cycle", "gamma_SA", "gamma_DA", "CSR_cycle", "ru", "hull", "dgamma", "kappa", "str_acc"];
-  const head = [...cols, "CBT_median", "CBT_p16", "CBT_p84", "CBT_mean", "mu_T", "sigma_T", "sigma_within", "sigma_between",
-    ...act.flatMap(a => [`${a}_median`, `${a}_mu_T`, `${a}_sigma_T`])];
-  const note = t.res.assessable ? "" : ` | CBT NOT ASSESSED: gamma_DA max ${fmt(t.res.gamma_DA_max, 2)}% < ${t.res.gamma_DA_min}%`;
-  const lines = [`# CBT Tool v0.9 | file: ${t.name} | units: time ${U.time}, stress ${U.stress}, strain % (input ${t.strainUnit === "dec" ? "decimal, converted" : "%"}) | analysts: ${act.join(" ")} | gamma_DA=9% cycle: ${t.res.target_cycle || "not reached"}${note}`, head.join(",")];
-  for (const c of t.res.cycles) {
-    const cb = combine(c) || {};
-    lines.push([...cols.map(k => csvVal(c[k])), csvVal(cb.median), csvVal(cb.p16), csvVal(cb.p84), csvVal(cb.mean), csvVal(cb.mu_T), csvVal(cb.sigma_T), csvVal(cb.sd_within), csvVal(cb.sd_between),
-      ...act.flatMap(a => { const s = (c.cbt && c.cbt.analysts[a]) || {}; return [csvVal(s.median), csvVal(s.mu_T), csvVal(s.sigma_T)]; })].join(","));
-  }
-  download(t.name.replace(/\.[^.]+$/, "") + "_CBT_cycles.csv", lines.join("\n"));
-};
+/* Downloads (results, raw data, zip, disclaimer): js/export.js */

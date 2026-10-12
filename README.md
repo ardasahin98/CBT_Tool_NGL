@@ -14,6 +14,8 @@ its REST API (see "NGL database connection" below).
 |---|---|
 | `index.html`, `css/`, `js/app.js` | Tool page (Plotly charts) |
 | `about.html` | Input format, method and citation page |
+| `license.html` | End User License Agreement (opened from the License button in the footer) |
+| `js/export.js` | Downloads: results and raw data as .zip files with a disclaimer |
 | `js/ngl.js`, `js/config.js` | NGL sign-in, test-stage browser and loader; API address and optional proxy |
 | `serve.py` | Local web server with a relay to the NGL API (`/ngl/...`) |
 | `vercel.json` | Same `/ngl/...` relay when the site is hosted on Vercel |
@@ -57,6 +59,18 @@ Any static host works too: Netlify, Cloudflare Pages, or a UCLA web server.
 - κγ is computed once for the whole record. The batch script `Metric_Calculator.ipynb` called
   `Ns_calculation(Data, data_num)` (the test index); the tool passes the number of cycles instead.
 - Posterior means and SDs in `models.json` reproduce Table 2 of the paper exactly.
+
+## Downloads (Export box)
+
+Every download is a .zip with the CSV file(s) and `DISCLAIMER.txt` (wording in `disclaimerText()` in `js/export.js`).
+"Selected" downloads the selected test; "All (N)" appears when more than one test is loaded.
+
+- **Results:** `<test>_CBT_cycles.csv` per test (metrics and CBT for every cycle; the header gives the
+  source, and for NGL tests the IDs and index properties). Batch downloads add `CBT_summary.csv`
+  (one row per test: IDs, e0, w0, LL, PL, PI, metrics and CBT at the last cycle and at the γDA = 9% cycle).
+- **Raw data:** NGL stages use the NGL lab test viewer layout (`NGL_DirectSimpleShearTest_DSSS_ID_<id>.csv`:
+  reference, LAB, LAB_PROGRAM, CITATION, SPECIMEN, SAMPLES, PLAS, DSSG, DSSS metadata and data).
+  Uploaded files keep their own columns and units, under a short header with the file name and units.
 
 ## NGL database connection
 

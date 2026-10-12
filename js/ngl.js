@@ -20,7 +20,8 @@ const EP = {
   progs: "/lab-programs/api-index",
   progCit: "/lab-program-citations/api-index",
   labs: "/labs/api-index",
-    plas: "/plasticity-tests/api-index",
+  plas: "/plasticity-tests/api-index",
+  cits: "/citations/api-index",
 };
 const CORS_HELP = "The browser could not reach the NGL API from this page. This usually means NGL does not yet " +
   "allow requests from this website (CORS). On Vercel, make sure vercel.json is deployed; locally, run serve.py; " +
@@ -219,6 +220,13 @@ async function loadList() {
   const progCit = await opt("Lab program citations", () => apiIn(EP.progCit, "LAB_PROGRAM_ID", progSamp.map(x => x.LAB_PROGRAM_ID)));
   const citKey = firstKey(progCit[0], /CIT.*_ID$/i);
   const pcMap = groupBy(progCit, "LAB_PROGRAM_ID");
+  // citation text and URL (used in the raw-data download); the list works without them
+  let citRows = [];
+  if (citKey) {
+    try { citRows = await apiIn(EP.cits, citKey, progCit.map(x => x[citKey])); }
+    catch (e) { if (e instanceof AuthError) throw e; }
+  }
+  const cMap = byKey(citRows, citKey || "CITATION_ID");
 
   const keys = new Set();
   S.rows = stages.map(st => {
@@ -236,7 +244,11 @@ async function loadList() {
     const drain = drCode === 1 ? "undrained" : drCode === 0 ? "drained" : "";
     const fromAny = (k) => (k ? (t[k] ?? sp[k] ?? st[k] ?? "") : "");
     const cits = citKey ? [...new Set(plist.flatMap(p => (pcMap.get(String(p.LAB_PROGRAM_ID)) || []).map(c => c[citKey])).filter(has))] : [];
+    const labObjs = [...new Map(plist.map(p => lMap.get(String(p.LAB_ID))).filter(Boolean).map(l => [String(l.LAB_ID), l])).values()];
+    const citObjs = cits.map(id => Object.assign({ CITATION_ID: id, CITATION_TEXT: null, CITATION_URL: null }, cMap.get(String(id)) || {}));
     const row = {
+      // records kept for the raw-data download (NGL file layout)
+      meta: { labs: labObjs, progs: plist, cits: citObjs, spec: sp, samp: sa, plas: pl, dssg: t, dsss: st },
       id: st.DSSS_ID, stage: st.DSSS_ST ?? "", test: st.DSSG_ID ?? "",
       prog: progsTxt.join("; "), progs: progsTxt, lab: labsTxt.join("; "), labs: labsTxt,
       samp: pick(sa, ["SAMP_NAME"]), spec: pick(sp, ["SPEC_REF", "SPEC_NAME"]),
@@ -313,7 +325,8 @@ async function loadSelected() {
         if (window.cbtHasTest && window.cbtHasTest(name)) { skipped++; continue; }
         try {
           const csv = stageToCSV(recMap.get(id), row);
-          window.cbtAddTest(name, csv, NGL_UNITS, ok === 0);
+          window.cbtAddTest(name, csv, NGL_UNITS, ok === 0, Object.assign({ source: "NGL", user: S.user, on: new Date().toString(),
+            prog: row.prog, lab: row.lab, sampName: row.samp, specName: row.spec, e0: row.e0, w0: row.w0, ll: row.ll, pl: row.pl, stage: row.stage }, row.meta));
           ok++;
         } catch (e) { fail.push(`${name}: ${e.message}`); }
       }
