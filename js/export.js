@@ -8,7 +8,6 @@
 "use strict";
 
 const TOOL_VERSION = "0.9.8";
-const LICENSE_URL = () => new URL("license.html", location.href).href;
 
 /* ------------------------------------------------------------------ */
 /*  Disclaimer (DISCLAIMER.txt in every zip) – edit the wording here   */
@@ -52,11 +51,7 @@ function disclaimerText(kind, files, tests) {
     "   liquefaction database. Earthquake Spectra, 36(2), 939-959. DOI: 10.1177/8755293020902477",
     "   Products derived from these data are not endorsed by, or created in collaboration with,",
     "   the NGL project.");
-  lines.push(
-    "",
-    "Use of the tool and of these files is subject to the End User License Agreement:",
-    `   ${LICENSE_URL()}`,
-    "");
+  lines.push("");
   return lines.join("\r\n");
 }
 

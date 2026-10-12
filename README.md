@@ -13,8 +13,8 @@ its REST API (see "NGL database connection" below).
 | Path | Contents |
 |---|---|
 | `index.html`, `css/`, `js/app.js` | Tool page (Plotly charts) |
-| `about.html` | Input format, method and citation page |
-| `license.html` | End User License Agreement (opened from the License button in the footer) |
+| `about.html` | Input format, method, symbols, citation and license page |
+| `license.html` | Redirect to the End User License Agreement, which is the last section of `about.html` |
 | `js/export.js` | Downloads: results and raw data as .zip files with a disclaimer |
 | `js/ngl.js`, `js/config.js` | NGL sign-in, test-stage browser and loader; API address and optional proxy |
 | `serve.py` | Local web server with a relay to the NGL API (`/ngl/...`) |
