@@ -150,7 +150,7 @@ function refLine(t) {
 /* ------------------------------------------------------------------ */
 function cyclesCSV(t) {
   const act = activeList();
-  const cols = ["cycle", "gamma_SA", "gamma_DA", "CSR_cycle", "ru", "hull", "dgamma", "kappa", "str_acc"];
+  const cols = ["cycle", "gamma_SA", "gamma_DA", "CSR_cycle", "ru", "hull", "hull_method", "dgamma", "kappa", "str_acc"];
   const head = [...cols, "CBT_median", "CBT_p16", "CBT_p84", "CBT_mean", "mu_T", "sigma_T", "sigma_within", "sigma_between",
     ...act.flatMap(a => [`${a}_median`, `${a}_mu_T`, `${a}_sigma_T`])];
   const cv = t.res.curvature;

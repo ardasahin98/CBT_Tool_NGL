@@ -60,7 +60,11 @@ Any static host works too: Netlify, Cloudflare Pages, or a UCLA web server.
 - κγ is computed once for the whole record. If γ_SA = 3% is not reached, N_s is the last cycle and κγ is computed from
   γ_SA/γ_SA,last versus N/N_last (time over the time at the end of the last cycle), with the 10/50/90% points taken up
   to the end of the last cycle. `strain_curvature` also checks that 3% was actually reached, because `Ns_calculation`
-  can return N_s < N for records that stop below 3%. The batch script `Metric_Calculator.ipynb` called
+  can return N_s < N for records that stop below 3%.
+- A_loop for Ratio_hull uses Simpson's rule as in the paper. If the Simpson ratio is negative, above 1 while the trapezoid ratio is not, or differs from
+  the trapezoid rule by more than 0.02 (as a fraction of A_hull), the trapezoid rule is used for that cycle. Simpson's
+  rule can blow up when smoothed strain has zero or near-zero steps (coarsely quantized strain, e.g. NGL DSSS_ID 280,
+  cycle 16). The method used is reported per cycle (`hull_method` in the results CSV). The batch script `Metric_Calculator.ipynb` called
   `Ns_calculation(Data, data_num)` (the test index); the tool passes the number of cycles instead.
 - Posterior means and SDs in `models.json` reproduce Table 2 of the paper exactly.
 

@@ -369,15 +369,29 @@ def read_template(text, strain_scale=1.0):
 # -----------------------------------------------------------------------------
 #  Metrics
 # -----------------------------------------------------------------------------
+HULL_SIMPSON_TOL = 0.02   # max |Simpson - trapezoid| / A_hull before falling back to the trapezoid rule
+
+
 def hull_ratio(Data, l1, l2):
-    """Ratio_hull = A_loop / A_hull (Metric_Calculator, cell 3)."""
+    """Ratio_hull = A_loop / A_hull (Metric_Calculator, cell 3).
+    A_loop is computed with Simpson's rule as in the paper. With uneven strain
+    steps (coarsely quantized strain gives zero and near-zero steps after
+    smoothing) Simpson's weights contain step-length ratios that can blow up,
+    e.g. a negative loop area. If the Simpson ratio is negative, above 1 while
+    the trapezoid ratio is not, or
+    differs from the trapezoid rule by more than HULL_SIMPSON_TOL, the
+    trapezoid rule is used instead. Returns (ratio, hull vertices, method)."""
     stress_ind = np.asarray(Data["Stress"][l1:l2])
     strain_ind = np.asarray(Data["Strain"][l1:l2])
     combined = np.stack((strain_ind, stress_ind), axis=1)
     hull = ConvexHull(combined)
-    area_curve = simpson(stress_ind, x=strain_ind)
     area_hull = hull.volume
-    return area_curve / area_hull, hull.vertices
+    r_simp = simpson(stress_ind, x=strain_ind) / area_hull
+    r_trap = np.trapezoid(stress_ind, x=strain_ind) / area_hull
+    if (not np.isfinite(r_simp) or r_simp < 0 or (r_simp > 1 and r_trap <= 1)
+            or abs(r_simp - r_trap) > HULL_SIMPSON_TOL):
+        return r_trap, hull.vertices, "trapezoid"
+    return r_simp, hull.vertices, "simpson"
 
 
 def strain_curvature(Data, Num, B):
@@ -460,12 +474,14 @@ def analyze(raw):
                "CSR_cycle": _f(np.max(np.abs(csr[l1:l2]))),
                "ru": _f(np.max(ru[l1:l2]))}
         try:
-            hr, verts = hull_ratio(Data, l1, l2)
+            hr, verts, meth = hull_ratio(Data, l1, l2)
             row["hull"] = _f(min(hr, 1.0))   # Ratio_hull limited to 1
             row["hull_idx"] = (np.asarray(verts) + l1).tolist()
+            row["hull_method"] = meth
         except Exception:
             row["hull"] = None
             row["hull_idx"] = []
+            row["hull_method"] = None
         if i == 1:
             before = 0.0
         else:
