@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CBT Tool – Input format, method and citation</title>
 <meta name="description" content="Compute cyclic test metrics and estimate cyclic behavior type (CBT) of fine-grained soils from cyclic direct simple shear test records.">
-<link rel="stylesheet" href="css/style.css?v=0.9.8">
+<link rel="stylesheet" href="css/style.css?v=0.9.9">
 </head>
 <body>
 
@@ -45,13 +45,13 @@
     </table>
     <ul>
       <li>The record should start at the beginning of cyclic loading (after consolidation). Excess pore pressure ratio is computed as r<sub>u</sub> = (σ′<sub>v0</sub> − σ′<sub>v</sub>) / σ′<sub>v0</sub>, as in constant-volume CDSS tests.</li>
-      <li>Units are set in the tool (box 1) for each file: the selection applies to files uploaded next, and changing it updates the selected file. Stress and time units only change the plot labels, because every metric uses stress or time ratios (r<sub>u</sub>, τ/σ′<sub>v0</sub>, Ratio<sub>hull</sub>, N/N<sub>s</sub>). Shear strain entered as a decimal (e.g. 0.03) is converted to percent before any calculation, because the strain thresholds (γ<sub>DA</sub> = 6% and 9%, γ<sub>s</sub> = 3%) are defined in percent; results are always shown in percent.</li>
+      <li>Units are set in the tool (box 1) for each file: the selection applies to files uploaded next, and changing it updates the selected file. Stress and time units only change the plot labels, because every metric uses stress or time ratios (r<sub>u</sub>, τ/σ′<sub>v0</sub>, Ratio<sub>hull</sub>, N/N<sub>s</sub>). Shear strain entered as a decimal (e.g. 0.03) is converted to percent before any calculation, because the strain thresholds (γ<sub>DA</sub> = 9%, γ<sub>s</sub> = 3%) are defined in percent; results are always shown in percent.</li>
       <li>The example files illustrate the unit options: Example 1 is given in minutes, psf and decimal strain, and Examples 2 and 3 in seconds, kPa and percent strain. Loading an example in the tool selects its units automatically.</li>
       <li>Lines beginning with <code>#</code> are ignored.</li>
       <li>Rows with missing values in columns 1–4 are skipped.</li>
       <li>NGL database CDSS exports (<code>DSSS_TIME, DSSS_TAU, DSSS_SIGV, DSSS_YHV, DSSS_EPSV</code>) already use this layout.</li>
       <li>Tests can also be loaded directly from the NGL database: choose <b>Load from NGL database</b> in box 2, sign in with your NGL account (the token is valid for 2 hours), filter the list of direct simple shear test stages, and load the selected stages. They are added to the file list with units s, kPa and % strain.</li>
-      <li>The models were calibrated on stress-controlled CDSS tests on intact fine-grained specimens (FC &gt; 30%) with no initial static shear stress, carried to γ<sub>DA</sub> ≥ 9%. Tests that do not reach γ<sub>DA</sub> = 6% are not assessed. Use outside these conditions requires judgment.</li>
+      <li>The models were calibrated on stress-controlled CDSS tests on intact fine-grained specimens (FC &gt; 30%) with no initial static shear stress, carried to γ<sub>DA</sub> ≥ 9%. CBT is reported for every test, but tests that stop before γ<sub>DA</sub> = 9% are flagged. Use outside these conditions requires judgment.</li>
     </ul>
   </section>
 
@@ -65,11 +65,11 @@
       <li><strong>r<sub>u,max</sub></strong>: maximum excess pore pressure ratio within the cycle.</li>
       <li><strong>Ratio<sub>hull</sub> = A<sub>loop</sub> / A<sub>hull</sub></strong>: area under the stress–strain loop divided by the area of its convex hull. It decreases with pinching (sand-like response).</li>
       <li><strong>Ratio<sub>Δγ</sub> = Δγ<sub>cyc</sub> / γ<sub>FC</sub></strong>: increase in maximum single-amplitude strain relative to the previous cycle, divided by the first-cycle maximum strain.</li>
-      <li><strong>κ<sub>γ</sub></strong>: three-point curvature of γ/γ<sub>s</sub> versus N/N<sub>s</sub> (γ<sub>s</sub> = 3% single amplitude), using points at 10%, 50% and 90% of the record. Positive values indicate accelerating strain accumulation.</li>
+      <li><strong>κ<sub>γ</sub></strong>: three-point curvature of γ/γ<sub>s</sub> versus N/N<sub>s</sub> (γ<sub>s</sub> = 3% single amplitude), using points at 10%, 50% and 90% of the record. If γ<sub>SA</sub> = 3% is not reached, N<sub>s</sub> is taken as the last cycle and the strain is normalized by γ<sub>SA</sub> at the end of the last cycle (γ<sub>SA,last</sub>), so the curve ends at (1, 1); the three points are taken on that curve. Positive values indicate accelerating strain accumulation.</li>
     </ul>
 
     <h3>Cycle for assessment</h3>
-    <p>The tool shows CBT at the last loading cycle by default; any other cycle can be selected. Ultimate hysteretic behavior tends to stabilize by the cycle in which the double-amplitude shear strain reaches 9%, so that cycle is marked for reference and tests that stop between 6% and 9% are flagged, because the estimate may understate sand-like behavior. If a test never reaches γ<sub>DA</sub> = 6%, CBT for fine-grained soils cannot be assessed and no CBT is reported because strain accumulation curvature cannot be calculated.</p>
+    <p>The tool shows CBT at the last loading cycle by default; any other cycle can be selected. Ultimate hysteretic behavior tends to stabilize by the cycle in which the double-amplitude shear strain reaches 9%, so that cycle is marked for reference. CBT is reported for every test, but if a test stops before γ<sub>DA</sub> = 9%, a yellow caution is shown on every tab and in the downloads: be careful when inferring the ultimate hysteretic behavior and susceptibility from such a test, because these may not have developed.</p>
 
     <h3>Analyst models</h3>
     <p>Ten analysts assigned CBT to 195 CDSS tests from the Next Generation Liquefaction database. For each analyst, the logit of CBT was regressed on a subset of the metrics with Bayesian inference (PyMC, 4 chains × 1,000 samples):</p>
@@ -96,12 +96,11 @@
       <tr><td>γ</td><td>Shear strain</td><td>%</td></tr>
       <tr><td>γ<sub>SA</sub></td><td>Single-amplitude shear strain: largest |γ| within a cycle</td><td>%</td></tr>
       <tr><td>γ<sub>DA</sub></td><td>Double-amplitude shear strain: γ<sub>max</sub> − γ<sub>min</sub> within a cycle</td><td>%</td></tr>
-      <tr><td>γ<sub>DA</sub> = 6%</td><td>Minimum strain level; tests that never reach it are not assessed</td><td>%</td></tr>
-      <tr><td>γ<sub>DA</sub> = 9%</td><td>Strain level at which hysteretic behavior has usually stabilized; the first cycle reaching it is marked</td><td>%</td></tr>
+      <tr><td>γ<sub>DA</sub> = 9%</td><td>Strain level at which hysteretic behavior has usually stabilized; the first cycle reaching it is marked, and tests that never reach it carry a caution</td><td>%</td></tr>
       <tr><td>CSR</td><td>Cyclic stress ratio, τ / σ′<sub>v0</sub> (largest |τ| / σ′<sub>v0</sub> within a cycle)</td><td>–</td></tr>
       <tr><td>r<sub>u</sub></td><td>Excess pore pressure ratio, (σ′<sub>v0</sub> − σ′<sub>v</sub>) / σ′<sub>v0</sub> = 1 − σ′<sub>v</sub>/σ′<sub>v0</sub></td><td>–</td></tr>
       <tr><td>N</td><td>Loading cycle number (a cycle starts where τ crosses zero from negative to positive)</td><td>–</td></tr>
-      <tr><td>N<sub>s</sub></td><td>Number of cycles to reach γ<sub>SA</sub> = γ<sub>s</sub> = 3%</td><td>cycles</td></tr>
+      <tr><td>N<sub>s</sub></td><td>Number of cycles to reach γ<sub>SA</sub> = γ<sub>s</sub> = 3%; the last cycle if 3% is not reached</td><td>cycles</td></tr>
     </tbody></table></div>
 
     <h3 id="sym-metrics">Metrics</h3>
@@ -113,7 +112,7 @@
       <tr><td>Δγ<sub>cyc</sub></td><td>Increase in γ<sub>SA</sub> relative to the previous cycle</td><td>%</td></tr>
       <tr><td>γ<sub>FC</sub></td><td>γ<sub>SA</sub> of the first cycle</td><td>%</td></tr>
       <tr><td>κ<sub>γ</sub></td><td>Strain accumulation curvature: three-point curvature of γ<sub>SA</sub>/γ<sub>s</sub> versus N/N<sub>s</sub> at 10%, 50% and 90% of the record (red points in the strain accumulation plot); one value for the whole record. Positive = accelerating strain accumulation</td><td>–</td></tr>
-      <tr><td>γ<sub>s</sub></td><td>Reference single-amplitude strain, 3%</td><td>%</td></tr>
+      <tr><td>γ<sub>s</sub></td><td>Reference single-amplitude strain, 3%; if 3% is not reached, γ<sub>SA,last</sub> (γ<sub>SA</sub> at the end of the last cycle)</td><td>%</td></tr>
       <tr><td>N / N<sub>s</sub></td><td>Cycle number normalized by N<sub>s</sub></td><td>–</td></tr>
     </tbody></table></div>
 
@@ -177,7 +176,7 @@
   </section>
 </div>
 
-<footer>CBT Tool · v0.9.8 · <a class="btn sm lic-btn" href="#license">License</a></footer>
+<footer>CBT Tool · v0.9.9 · <a class="btn sm lic-btn" href="#license">License</a></footer>
 <script src="js/nav.js?v=0.9.7"></script>
 </body>
 </html>

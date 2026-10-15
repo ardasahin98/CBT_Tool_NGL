@@ -501,3 +501,26 @@ footer .lic-btn { color: var(--ink-2); padding: 2px 9px; font-size: 12px; text-d
 footer .lic-btn:hover { color: var(--accent); border-color: var(--accent); }
 .license-doc h3 { margin-top: 18px; }
 .license-doc .lic-cite { padding-left: 14px; border-left: 3px solid var(--line); }
+
+/* v0.9.9: yellow caution banner (γDA < 9%) at the top of every tab; export test picker */
+.banner.yellow { background: #fff9c4; color: #5c4a00; border: 1px solid #f0dc5a; }
+.tabwarn:empty { display: none; }
+.tabwarn .banner { margin-bottom: 10px; }
+.expsel { position: relative; }
+.expsel-btn { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 6px; text-align: left; }
+.expsel-btn #expSelTxt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expsel-btn .caret { font-size: 10px; transition: transform .15s; }
+.expsel.open .expsel-btn .caret { transform: rotate(180deg); }
+.expsel-menu {
+  position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; z-index: 60; min-width: 220px;
+  background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(10, 20, 35, .18); padding: 6px;
+}
+.expsel-quick { display: flex; gap: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.expsel-list { max-height: 240px; overflow-y: auto; }
+.expsel-list label { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 12.5px; border-radius: 4px; cursor: pointer; }
+.expsel-list label:hover { background: var(--accent-soft); }
+.expsel-list .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expsel-list .st { font-size: 11px; color: var(--ink-2); }
+.expsel-list .st.err { color: var(--err); }
+.exp-btns { display: flex; gap: 6px; margin-bottom: 6px; }
+.exp-btns .btn { flex: 1; }

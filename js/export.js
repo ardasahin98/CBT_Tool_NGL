@@ -4,10 +4,11 @@
      Raw data – the test record as loaded. NGL stages use the NGL lab test viewer layout
                 (reference, LAB, LAB_PROGRAM, CITATION, SPECIMEN, SAMPLES, PLAS, DSSG,
                 DSSS metadata and data); uploaded files keep their own columns and units.
-   Uses state, combine, fmt, U, curTest and selectedTest from app.js. */
+   The tests to download are picked in the Export box dropdown (all tests are ticked by default).
+   Uses state, combine, fmt, U, esc and selectedTest from app.js. */
 "use strict";
 
-const TOOL_VERSION = "0.9.8";
+const TOOL_VERSION = "0.9.9";
 
 /* ------------------------------------------------------------------ */
 /*  Disclaimer (DISCLAIMER.txt in every zip) – edit the wording here   */
@@ -35,6 +36,13 @@ function disclaimerText(kind, files, tests) {
     "",
     `${k++}. Combined CBT values use equal weights over the analyst models selected at export:`,
     `   ${act.length ? act.join(", ") : "none"} (${act.length} of ${state.analysts.length}).`);
+  const low = tests.filter(t => t.status === "done" && !t.res.reached_target);
+  if (kind === "results" && low.length) lines.push(
+    "",
+    `${k++}. ${low.length} test(s) did not reach a double-amplitude shear strain of 9%:`,
+    ...low.map(t => `   ${t.name} (maximum ${fmt(t.res.gamma_DA_max, 2)}%)`),
+    "   Be careful when inferring the ultimate hysteretic behavior and susceptibility from these",
+    "   test results.");
   lines.push(
     "",
     `${k++}. If you use these results, please cite:`,
@@ -145,7 +153,9 @@ function cyclesCSV(t) {
   const cols = ["cycle", "gamma_SA", "gamma_DA", "CSR_cycle", "ru", "hull", "dgamma", "kappa", "str_acc"];
   const head = [...cols, "CBT_median", "CBT_p16", "CBT_p84", "CBT_mean", "mu_T", "sigma_T", "sigma_within", "sigma_between",
     ...act.flatMap(a => [`${a}_median`, `${a}_mu_T`, `${a}_sigma_T`])];
-  const note = t.res.assessable ? "" : ` | CBT NOT ASSESSED: gamma_DA max ${fmt(t.res.gamma_DA_max, 2)}% < ${t.res.gamma_DA_min}%`;
+  const cv = t.res.curvature;
+  const note = (cv.reached ? ` | N_s (gamma_SA=3%): ${fmt(cv.N_s, 2)}` : ` | N_s: last cycle (${t.res.n_cycles}), gamma_SA=3% not reached; kappa from gamma_SA/gamma_SA,last (${fmt(cv.gamma_s, 3)}%) vs N/N_last`) +
+    (t.res.reached_target ? "" : ` | CAUTION: gamma_DA max ${fmt(t.res.gamma_DA_max, 2)}% < 9%; be careful when inferring the ultimate hysteretic behavior and susceptibility from this test result`);
   const lines = [
     `# CBT Tool v${TOOL_VERSION} | file: ${t.name} | units: time ${t.units.time}, stress ${t.units.stress}, strain % (input ${t.strainUnit === "dec" ? "decimal, converted" : "%"}) | analysts: ${act.join(" ")} | gamma_DA=9% cycle: ${t.res.target_cycle || "not reached"}${note}`,
     refLine(t),
@@ -160,8 +170,8 @@ function cyclesCSV(t) {
 }
 function summaryCSV(tests) {
   const head = ["file", "source", "status", "DSSS_ID", "DSSG_ID", "lab", "lab_program", "sample", "specimen", "e0", "w0", "LL", "PL", "PI",
-    "time_unit", "stress_unit", "n_cycles", "sigma_v0", "CSR_max", "gamma_DA_max", "assessable", "gamma_DA9_cycle",
-    "last_cycle", "last_gamma_DA", "last_ru", "last_hull", "last_dgamma", "kappa",
+    "time_unit", "stress_unit", "n_cycles", "sigma_v0", "CSR_max", "gamma_DA_max", "reached_gamma_DA9", "gamma_DA9_cycle",
+    "N_s", "N_s_basis", "last_cycle", "last_gamma_DA", "last_ru", "last_hull", "last_dgamma", "kappa",
     "last_CBT_median", "last_CBT_p16", "last_CBT_p84", "last_mu_T", "last_sigma_T",
     "g9_ru", "g9_hull", "g9_dgamma", "g9_CBT_median", "g9_CBT_p16", "g9_CBT_p84", "g9_mu_T", "g9_sigma_T"];
   const lines = [`# CBT Tool v${TOOL_VERSION} | summary of ${tests.length} tests | analysts: ${activeList().join(" ")} | strains in %; sigma_v0 in each test's stress unit | last_ = last cycle, g9_ = first cycle with gamma_DA >= 9%`, head.join(",")];
@@ -170,13 +180,13 @@ function summaryCSV(tests) {
     const ll = numOrNull(m.ll), pl = numOrNull(m.pl);
     const id = ngl ? [csvVal(m.dsss && m.dsss.DSSS_ID), csvVal(m.dssg && m.dssg.DSSG_ID), csvVal(m.lab), csvVal(m.prog), csvVal(m.sampName), csvVal(m.specName),
       csvVal(numOrNull(m.e0)), csvVal(numOrNull(m.w0)), csvVal(ll), csvVal(pl), csvVal(ll !== null && pl !== null ? ll - pl : null)] : Array(11).fill("");
-    const status = t.status === "done" ? (t.res.assessable ? "ok" : "not assessable (gamma_DA < 6%)") : t.status === "error" ? "error: " + t.error : "not computed yet";
+    const status = t.status === "done" ? (t.res.reached_target ? "ok" : "caution: gamma_DA < 9%; be careful when inferring ultimate hysteretic behavior and susceptibility") : t.status === "error" ? "error: " + t.error : "not computed yet";
     const row = [csvVal(t.name), ngl ? "NGL" : "upload", csvVal(status), ...id, csvVal(t.units.time), csvVal(t.units.stress)];
     if (t.status === "done") {
       const r = t.res, last = r.cycles[r.n_cycles - 1], g9 = r.target_cycle ? r.cycles[r.target_cycle - 1] : null;
       const cl = combine(last) || {}, c9 = (g9 && combine(g9)) || {};
-      row.push(r.n_cycles, csvVal(r.sv0), csvVal(Math.max(...r.cycles.map(c => c.CSR_cycle || 0))), csvVal(r.gamma_DA_max), r.assessable ? "yes" : "no", r.target_cycle || "",
-        last.cycle, csvVal(last.gamma_DA), csvVal(last.ru), csvVal(last.hull), csvVal(last.dgamma), csvVal(last.kappa),
+      row.push(r.n_cycles, csvVal(r.sv0), csvVal(Math.max(...r.cycles.map(c => c.CSR_cycle || 0))), csvVal(r.gamma_DA_max), r.reached_target ? "yes" : "no", r.target_cycle || "",
+        csvVal(r.curvature.N_s), r.curvature.reached ? "gamma_SA=3%" : "last cycle", last.cycle, csvVal(last.gamma_DA), csvVal(last.ru), csvVal(last.hull), csvVal(last.dgamma), csvVal(last.kappa),
         csvVal(cl.median), csvVal(cl.p16), csvVal(cl.p84), csvVal(cl.mu_T), csvVal(cl.sigma_T),
         csvVal(g9 && g9.ru), csvVal(g9 && g9.hull), csvVal(g9 && g9.dgamma), csvVal(c9.median), csvVal(c9.p16), csvVal(c9.p84), csvVal(c9.mu_T), csvVal(c9.sigma_T));
     }
@@ -272,40 +282,81 @@ async function downloadZip(zipName, files, kind, tests, btn) {
     if (btn) { btn.textContent = label; updateExportButtons(); }
   }
 }
-function exportResults(all, btn) {
-  if (all) {
-    const tests = state.tests.slice();
-    const done = tests.filter(t => t.status === "done");
-    const files = done.map(t => ({ name: baseName(t) + "_CBT_cycles.csv", text: cyclesCSV(t) }));
-    files.push({ name: "CBT_summary.csv", text: summaryCSV(tests) });
-    downloadZip(`CBT_results_${tests.length}_tests_${stamp()}.zip`, files, "results", tests, btn);
-  } else {
-    const t = curTest(); if (!t) return;
+// Tests ticked in the Export dropdown. New tests are ticked when they are added.
+const expPick = { sel: new Set(), seen: new Set(), sig: "" };
+const pickedTests = () => state.tests.filter(t => expPick.sel.has(t.id));
+
+function exportResults(btn) {
+  const tests = pickedTests();
+  const done = tests.filter(t => t.status === "done");
+  if (!done.length) return;
+  if (tests.length === 1) {
+    const t = done[0];
     downloadZip(baseName(t) + "_CBT_results.zip", [{ name: baseName(t) + "_CBT_cycles.csv", text: cyclesCSV(t) }], "results", [t], btn);
+    return;
   }
+  const files = done.map(t => ({ name: baseName(t) + "_CBT_cycles.csv", text: cyclesCSV(t) }));
+  files.push({ name: "CBT_summary.csv", text: summaryCSV(tests) });
+  downloadZip(`CBT_results_${tests.length}_tests_${stamp()}.zip`, files, "results", tests, btn);
 }
-function exportRaw(all, btn) {
-  const tests = all ? state.tests.slice() : [selectedTest()].filter(Boolean);
+function exportRaw(btn) {
+  const tests = pickedTests();
   if (!tests.length) return;
   const files = tests.map(t => ({ name: rawName(t), text: rawCSV(t) }));
-  const zipName = all ? `CBT_raw_data_${tests.length}_tests_${stamp()}.zip` : rawName(tests[0]).replace(/\.csv$/, "") + "_raw.zip";
+  const zipName = tests.length > 1 ? `CBT_raw_data_${tests.length}_tests_${stamp()}.zip` : rawName(tests[0]).replace(/\.csv$/, "") + "_raw.zip";
   downloadZip(zipName.replace("_raw_raw", "_raw"), files, "raw", tests, btn);
 }
-function updateExportButtons() {
-  const n = state.tests.length, nDone = state.tests.filter(t => t.status === "done").length;
-  const sel = selectedTest();
-  $("expResSel").disabled = !(sel && sel.status === "done");
-  $("expRawSel").disabled = !sel;
-  for (const [id, ok] of [["expResAll", nDone > 0], ["expRawAll", n > 0]]) {
-    const b = $(id);
-    b.hidden = n < 2;
-    if (b.textContent !== "Preparing…") { b.textContent = `All (${n})`; b.disabled = !ok; }
-  }
-  const pending = n - nDone - state.tests.filter(t => t.status === "error").length;
-  $("expResAll").title = pending ? `${pending} test(s) still computing will be listed in the summary without results` : "Per-cycle results for every test, plus a summary table";
+
+function renderPickList() {
+  const box = $("expSelList");
+  box.innerHTML = state.tests.map(t => {
+    const st = t.status === "done" ? (t.res.reached_target ? "" : "γDA < 9%") : t.status === "error" ? "error" : "computing";
+    return `<label title="${esc(t.name)}"><input type="checkbox" data-tid="${t.id}"${expPick.sel.has(t.id) ? " checked" : ""}>` +
+      `<span class="nm">${esc(t.name)}</span>${st ? `<span class="st${t.status === "error" ? " err" : ""}">${st}</span>` : ""}</label>`;
+  }).join("");
+  box.querySelectorAll("input").forEach(cb => cb.addEventListener("change", () => {
+    const id = +cb.dataset.tid;
+    cb.checked ? expPick.sel.add(id) : expPick.sel.delete(id);
+    updateExportButtons();
+  }));
 }
-$("expResSel").onclick = (e) => exportResults(false, e.currentTarget);
-$("expResAll").onclick = (e) => exportResults(true, e.currentTarget);
-$("expRawSel").onclick = (e) => exportRaw(false, e.currentTarget);
-$("expRawAll").onclick = (e) => exportRaw(true, e.currentTarget);
+function updateExportButtons() {
+  // keep the selection in step with the loaded tests
+  const ids = new Set(state.tests.map(t => t.id));
+  for (const id of ids) if (!expPick.seen.has(id)) { expPick.seen.add(id); expPick.sel.add(id); }
+  for (const id of [...expPick.sel]) if (!ids.has(id)) expPick.sel.delete(id);
+  const sig = state.tests.map(t => `${t.id}:${t.status}:${t.status === "done" ? t.res.reached_target : ""}`).join("|");
+  if (sig !== expPick.sig) { expPick.sig = sig; renderPickList(); }
+
+  const n = state.tests.length, picked = pickedTests(), k = picked.length;
+  const kDone = picked.filter(t => t.status === "done").length;
+  const pending = picked.filter(t => t.status === "queued" || t.status === "running").length;
+  $("expSelBtn").disabled = n === 0;
+  if (n === 0) closePick();
+  $("expSelTxt").textContent = n === 0 ? "No tests loaded"
+    : k === 0 ? "No tests selected"
+    : k === n ? (n === 1 ? "1 test: " + state.tests[0].name : `All ${n} tests`)
+    : k === 1 ? "1 test: " + picked[0].name : `${k} of ${n} tests`;
+  const rb = $("expRes"), wb = $("expRaw");
+  if (rb.textContent !== "Preparing…") { rb.textContent = k > 1 ? `Results (${k})` : "Results"; rb.disabled = kDone === 0; }
+  if (wb.textContent !== "Preparing…") { wb.textContent = k > 1 ? `Raw data (${k})` : "Raw data"; wb.disabled = k === 0; }
+  rb.title = pending ? `${pending} selected test(s) still computing will be listed in the summary without results`
+    : "Metrics and CBT for every cycle (more than one test: one file per test plus a summary table)";
+}
+
+function openPick() { $("expSelMenu").hidden = false; $("expSel").classList.add("open"); $("expSelBtn").setAttribute("aria-expanded", "true"); }
+function closePick() { $("expSelMenu").hidden = true; $("expSel").classList.remove("open"); $("expSelBtn").setAttribute("aria-expanded", "false"); }
+$("expSelBtn").onclick = () => ($("expSelMenu").hidden ? openPick() : closePick());
+document.addEventListener("click", (e) => { if (!$("expSel").contains(e.target)) closePick(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePick(); });
+document.querySelectorAll("#expSelMenu [data-q]").forEach(b => b.addEventListener("click", () => {
+  const q = b.dataset.q;
+  expPick.sel.clear();
+  if (q === "all") state.tests.forEach(t => expPick.sel.add(t.id));
+  if (q === "cur" && selectedTest()) expPick.sel.add(selectedTest().id);
+  expPick.sig = "";   // redraw the ticks
+  updateExportButtons();
+}));
+$("expRes").onclick = (e) => exportResults(e.currentTarget);
+$("expRaw").onclick = (e) => exportRaw(e.currentTarget);
 updateExportButtons();

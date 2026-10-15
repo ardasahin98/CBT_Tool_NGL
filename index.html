@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CBT Tool – Cyclic Behavior Type from CDSS Tests</title>
 <meta name="description" content="Compute cyclic test metrics and estimate cyclic behavior type (CBT) of fine-grained soils from cyclic direct simple shear test records.">
-<link rel="stylesheet" href="css/style.css?v=0.9.8">
+<link rel="stylesheet" href="css/style.css?v=0.9.9">
 <script src="vendor/plotly.min.js"></script>
 </head>
 <body>
@@ -81,17 +81,23 @@
 
   <div class="card exportcard">
     <h2>Export</h2>
-    <div class="exp" title="Metrics and CBT for every cycle (batch: one file per test plus a summary table)">
-      <span class="exp-l">Results</span>
-      <button class="btn sm" id="expResSel" disabled>Selected</button>
-      <button class="btn sm" id="expResAll" hidden>All</button>
+    <div class="exp-btns">
+      <button class="btn sm" id="expRes" disabled title="Metrics and CBT for every cycle (more than one test: one file per test plus a summary table)">Results</button>
+      <button class="btn sm" id="expRaw" disabled title="Test data as loaded; NGL tests include the NGL reference and index properties">Raw data</button>
     </div>
-    <div class="exp" title="Test data as loaded; NGL tests include the NGL reference and index properties">
-      <span class="exp-l">Raw data</span>
-      <button class="btn sm" id="expRawSel" disabled>Selected</button>
-      <button class="btn sm" id="expRawAll" hidden>All</button>
+    <div class="expsel" id="expSel">
+      <button type="button" class="btn sm expsel-btn" id="expSelBtn" aria-haspopup="true" aria-expanded="false" disabled title="Choose the tests to download">
+        <span id="expSelTxt">No tests loaded</span><span class="caret" aria-hidden="true">▾</span></button>
+      <div class="expsel-menu" id="expSelMenu" role="menu" hidden>
+        <div class="expsel-quick">
+          <button type="button" class="btn sm" data-q="all">All</button>
+          <button type="button" class="btn sm" data-q="none">None</button>
+          <button type="button" class="btn sm" data-q="cur" title="Only the test shown in the workspace">Current</button>
+        </div>
+        <div class="expsel-list" id="expSelList"></div>
+      </div>
     </div>
-    <div class="muted small" style="margin-top:6px">Each download is a .zip with the CSV file(s) and a disclaimer.</div>
+    <div class="muted small" style="margin-top:6px">Pick the tests in the list; each download is a .zip with the CSV file(s) and a disclaimer.</div>
   </div>
 </section>
 
@@ -162,6 +168,7 @@
       </div>
 
       <div class="tabpane on" id="tab-record">
+        <div class="tabwarn"></div>
         <div class="recgrid">
           <div class="plot" id="pLoop"></div>
           <div class="plot" id="pPath"></div>
@@ -172,6 +179,7 @@
       </div>
 
       <div class="tabpane" id="tab-evol">
+        <div class="tabwarn"></div>
         <div class="grid2">
           <div class="plot" id="eRu"></div>
           <div class="plot" id="eHull"></div>
@@ -181,6 +189,7 @@
       </div>
 
       <div class="tabpane" id="tab-cbt">
+        <div class="tabwarn"></div>
         <div class="row small" style="margin-bottom:8px">
           <label><input type="checkbox" id="showAnalystLines" checked> Show individual analysts</label>
           <label><input type="checkbox" id="logitSpace"> Distribution in logit space</label>
@@ -192,6 +201,7 @@
       </div>
 
       <div class="tabpane" id="tab-table">
+        <div class="tabwarn"></div>
         <div class="row small" style="justify-content:flex-end;margin-bottom:6px"><a class="symlink" href="about.html#sym-cbt" target="_blank" rel="noopener" title="Open the list of symbols in a new tab">ⓘ Symbols</a></div>
         <div class="tblwrap"><table class="tbl" id="aTable"></table></div>
         <p class="muted small">μ<sub>T</sub>, σ<sub>T</sub>: mean and standard deviation in logit space. σ<sub>T</sub> combines coefficient (posterior) uncertainty and the model standard deviation σ̂. Combined σ<sub>T</sub> adds the between-analyst term.</p>
@@ -238,13 +248,13 @@
   </div>
 </dialog>
 
-<footer>CBT Tool · v0.9.8 · The top boxes can be stretched from their bottom-right corner · <a href="#" id="resetSizes">Reset box sizes</a> · <a class="btn sm lic-btn" href="about.html#license" target="_blank" rel="noopener">License</a></footer>
+<footer>CBT Tool · v0.9.9 · The top boxes can be stretched from their bottom-right corner · <a href="#" id="resetSizes">Reset box sizes</a> · <a class="btn sm lic-btn" href="about.html#license" target="_blank" rel="noopener">License</a></footer>
 
-<script src="js/app.js?v=0.9.8"></script>
-<script src="js/resize.js?v=0.9.8"></script>
+<script src="js/app.js?v=0.9.9"></script>
+<script src="js/resize.js?v=0.9.9"></script>
 <script src="js/config.js?v=0.9"></script>
-<script src="js/ngl.js?v=0.9.8"></script>
-<script src="js/export.js?v=0.9.8"></script>
+<script src="js/ngl.js?v=0.9.9"></script>
+<script src="js/export.js?v=0.9.9"></script>
 <script src="js/nav.js?v=0.9.7"></script>
 </body>
 </html>

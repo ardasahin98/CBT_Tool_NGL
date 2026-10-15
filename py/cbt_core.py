@@ -319,8 +319,7 @@ def three_point_curvature(x_s, y_s):
 from scipy.spatial import ConvexHull
 from scipy.integrate import simpson
 
-GAMMA_DA_TARGET = 9.0          # % double-amplitude shear strain (gamma_DA,9)
-GAMMA_DA_MIN = 6.0             # % below this, CBT is not assessed
+GAMMA_DA_TARGET = 9.0          # % double-amplitude shear strain (gamma_DA,9); tests below it are flagged
 METRIC_KEYS = ["hull", "ru", "dgamma", "kappa"]
 
 TEMPLATE_COLUMNS = ["Time (s)", "Shear Stress (kPa)", "Vertical Effective Stress (kPa)",
@@ -381,27 +380,49 @@ def hull_ratio(Data, l1, l2):
     return area_curve / area_hull, hull.vertices
 
 
-def strain_curvature(Data, Num):
+def strain_curvature(Data, Num, B):
     """kappa_gamma over the whole record (Metric_Calculator, cell 0).
     Note: the original batch script passed the test index instead of the
-    number of cycles to Ns_calculation; the number of cycles is used here."""
+    number of cycles to Ns_calculation; the number of cycles is used here.
+
+    gamma_SA = 3% reached: N_s is the cycle where it is reached and the curve is
+    gamma_SA/3% versus N/N_s (as in the paper).
+    gamma_SA = 3% not reached: N_s is taken as the last cycle. The curve is
+    gamma_SA/gamma_SA,last versus N/N_last (time over the time at the end of the
+    last cycle), so it ends at (1, 1), and the 10%, 50% and 90% points are taken
+    on that curve up to the end of the last cycle."""
     N_s_dict = Ns_calculation(Data, Num)
     N_s = N_s_dict[2]
-    if N_s != "Did not reached":
-        gama_over_gama_s = N_s_dict[0]
-        N_over_N_s = N_s_dict[1]
+    # Ns_calculation picks the point closest to 3%, which is the end of the record
+    # when 3% is never reached; it can then still report N_s < Num. Check explicitly.
+    run_max = np.maximum.accumulate(np.abs(np.asarray(Data["Strain"], float)))
+    reached = N_s != "Did not reached" and float(np.max(run_max)) >= 3.0
+    if reached:
+        gama_over_gama_s = np.asarray(N_s_dict[0], float)
+        N_over_N_s = np.asarray(N_s_dict[1], float)
+        end = len(N_over_N_s)
+        max_N_over_N_s = np.max(N_over_N_s)
+        N_s_val, g_s = float(N_s), 3.0
     else:
-        gama_over_gama_s = N_s_dict[0]
-        N_over_N_s = Data["New_Time"]
-    max_N_over_N_s = np.max(N_over_N_s)
-    idx = [int(np.argmin(np.abs(N_over_N_s - max_N_over_N_s * p))) for p in (0.1, 0.5, 0.9)]
+        time = np.asarray(Data["New_Time"], float)   # run_max: running max of |gamma| (%)
+        last = int(B[-1])
+        t_last, g_s = float(time[last]), float(run_max[last])
+        if not (t_last > 0 and g_s > 0):
+            raise ValueError("Strain accumulation cannot be normalized at the last cycle.")
+        N_over_N_s = time / t_last
+        gama_over_gama_s = run_max / g_s
+        end = last + 1
+        max_N_over_N_s = 1.0
+        N_s_val = float(Num)
+    idx = [int(np.argmin(np.abs(N_over_N_s[:end] - max_N_over_N_s * p))) for p in (0.1, 0.5, 0.9)]
     x_s = [float(N_over_N_s[i]) for i in idx]
     y_s = [float(gama_over_gama_s[i]) for i in idx]
     curvature = three_point_curvature(x_s, y_s)
-    return {"kappa": float(curvature), "N_s": None if N_s == "Did not reached" else float(N_s),
+    return {"kappa": float(curvature), "N_s": N_s_val, "gamma_s": g_s,
+            "basis": "gamma_SA=3%" if reached else "last cycle",
             "x_s": x_s, "y_s": y_s,
-            "N_over_N_s": np.asarray(N_over_N_s, float), "g_over_g_s": np.asarray(gama_over_gama_s, float),
-            "reached": N_s != "Did not reached"}
+            "N_over_N_s": N_over_N_s, "g_over_g_s": gama_over_gama_s,
+            "reached": reached}
 
 
 def _f(x):
@@ -427,7 +448,7 @@ def analyze(raw):
     csr = np.asarray(ru_d["CSR"], float)
     sv0 = float(Data["Normal_Stress"][0])
 
-    curv = strain_curvature(Data, Num)
+    curv = strain_curvature(Data, Num, B)
     first_cycle_max_strain = float(np.max(np.abs(strain[B[0]:B[1]])))
 
     cycles = []
@@ -459,10 +480,9 @@ def analyze(raw):
 
     return {"n_cycles": Num, "sv0": sv0, "bounds": [int(b) for b in B],
             "target_cycle": target, "reached_target": target is not None,
-            "gamma_DA_max": gamma_da_max, "assessable": gamma_da_max >= GAMMA_DA_MIN,
-            "gamma_DA_min": GAMMA_DA_MIN,
+            "gamma_DA_max": gamma_da_max, "gamma_DA_target": GAMMA_DA_TARGET,
             "first_cycle_max_strain": first_cycle_max_strain,
-            "curvature": {k: curv[k] for k in ("kappa", "N_s", "x_s", "y_s", "reached")},
+            "curvature": {k: curv[k] for k in ("kappa", "N_s", "gamma_s", "basis", "x_s", "y_s", "reached")},
             "cycles": cycles,
             "_series": {"time": time, "stress": stress, "strain": strain, "ru": ru,
                         "sv_norm": np.asarray(ru_d["x_axis_values"], float),
@@ -559,11 +579,8 @@ def run(text, name="test", weights=None, strain_scale=1.0):
     raw = read_template(text, strain_scale)
     res = analyze(raw)
     for c in res["cycles"]:
-        if res["assessable"]:
-            m = {k: c.get(k) for k in METRIC_KEYS}
-            c["cbt"] = predict_cycle(m, weights=weights)
-        else:
-            c["cbt"] = None
+        m = {k: c.get(k) for k in METRIC_KEYS}
+        c["cbt"] = predict_cycle(m, weights=weights)
     _LAST[name] = res
     ser = res.pop("_series")
     res["name"] = name

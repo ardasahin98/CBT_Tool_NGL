@@ -55,19 +55,25 @@ Any static host works too: Netlify, Cloudflare Pages, or a UCLA web server.
 - CBT for analyst *i*: every posterior sample gives μ_s = θ_s·[1, X]. Then μ_i = mean(μ_s) and
   σ_i² = var(μ_s) + mean(σ̂_s²). Analysts are combined with equal weights using
   μ_c = Σ w μ_i and σ_c² = Σ w σ_i² + Σ w (μ_i − μ_c)². The result is back-transformed with expit.
-- Default evaluation cycle is the last cycle; the γ_DA = 9% cycle is marked. Tests that stop between 6% and 9% are flagged. Below 6%, no CBT is reported ("CBT for fine-grained soils cannot be assessed").
-- κγ is computed once for the whole record. The batch script `Metric_Calculator.ipynb` called
+- Default evaluation cycle is the last cycle; the γ_DA = 9% cycle is marked. CBT is reported for every test (the former
+  6% cut-off was removed). Tests that stop before γ_DA = 9% get a yellow caution on every tab and in the downloads.
+- κγ is computed once for the whole record. If γ_SA = 3% is not reached, N_s is the last cycle and κγ is computed from
+  γ_SA/γ_SA,last versus N/N_last (time over the time at the end of the last cycle), with the 10/50/90% points taken up
+  to the end of the last cycle. `strain_curvature` also checks that 3% was actually reached, because `Ns_calculation`
+  can return N_s < N for records that stop below 3%. The batch script `Metric_Calculator.ipynb` called
   `Ns_calculation(Data, data_num)` (the test index); the tool passes the number of cycles instead.
 - Posterior means and SDs in `models.json` reproduce Table 2 of the paper exactly.
 
 ## Downloads (Export box)
 
 Every download is a .zip with the CSV file(s) and `DISCLAIMER.txt` (wording in `disclaimerText()` in `js/export.js`).
-"Selected" downloads the selected test; "All (N)" appears when more than one test is loaded.
+The dropdown in the Export box picks the tests to download (all, none, the current test, or any combination;
+new tests are ticked by default). "Results" and "Raw data" download the ticked tests.
 
 - **Results:** `<test>_CBT_cycles.csv` per test (metrics and CBT for every cycle; the header gives the
   source, and for NGL tests the IDs and index properties). Batch downloads add `CBT_summary.csv`
-  (one row per test: IDs, e0, w0, LL, PL, PI, metrics and CBT at the last cycle and at the γDA = 9% cycle).
+  (one row per test: IDs, e0, w0, LL, PL, PI, whether γDA = 9% was reached, N_s and its basis, metrics and CBT at the last
+  cycle and at the γDA = 9% cycle). Batch downloads are made when more than one test is ticked.
 - **Raw data:** NGL stages use the NGL lab test viewer layout (`NGL_DirectSimpleShearTest_DSSS_ID_<id>.csv`:
   reference, LAB, LAB_PROGRAM, CITATION, SPECIMEN, SAMPLES, PLAS, DSSG, DSSS metadata and data).
   Uploaded files keep their own columns and units, under a short header with the file name and units.

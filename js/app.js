@@ -23,7 +23,7 @@ const TIP = {
   ru: "r_u,max: largest excess pore pressure ratio (σ′v0 − σ′v)/σ′v0 within the cycle",
   hull: "Ratio_hull = A_loop/A_hull: loop area over the area of its convex hull; lower = pinched, more sand-like",
   dgamma: "Ratio_Δγ = Δγcyc/γFC: increase in single-amplitude strain from the previous cycle over the first-cycle strain",
-  kappa: "κγ: curvature of γSA/3% versus N/Ns at 10%, 50% and 90% of the record (whole record); positive = accelerating",
+  kappa: "κγ: curvature of γSA/3% versus N/Ns at 10%, 50% and 90% of the record (whole record); if γSA = 3% is not reached, Ns = last cycle and γSA is normalized by its value at the last cycle; positive = accelerating",
 };
 const METRIC_TXT = { hull: "Ratio_hull", ru: "r_u,max", dgamma: "Ratio_Δγ", kappa: "κ_γ" };
 
@@ -103,7 +103,7 @@ function behaviorLabel(m) {
 /* ------------------------------------------------------------------ */
 /*  Worker                                                             */
 /* ------------------------------------------------------------------ */
-const worker = new Worker("js/worker.js?v=0.9");
+const worker = new Worker("js/worker.js?v=0.9.9");
 worker.onmessage = (e) => {
   const d = e.data;
   if (d.type === "progress") {
@@ -232,12 +232,11 @@ function renderFiles() {
     if (t.status === "queued") chip = `<span class="chip">queued</span>`;
     else if (t.status === "running") chip = `<span class="chip">computing…</span>`;
     else if (t.status === "error") chip = `<span class="chip err">error</span>`;
-    else if (!t.res.assessable) chip = `<span class="chip err" title="γDA below 6%: CBT cannot be assessed">not assessable</span>`;
     else {
       const c = t.res.cycles[evalCycle(t) - 1];
       const cb = combine(c);
       const cls = t.res.reached_target ? "chip" : "chip warn";
-      chip = `<span class="${cls}" title="CBT at the last ${cycLabel(t, t.res.n_cycles, false)}${t.res.reached_target ? "" : "; γDA = 9% not reached"}">CBT ${cb ? cb.median.toFixed(2) : "–"}</span>`;
+      chip = `<span class="${cls}" title="CBT at the last ${cycLabel(t, t.res.n_cycles, false)}${t.res.reached_target ? "" : "; γDA = 9% not reached, interpret with care"}">CBT ${cb ? cb.median.toFixed(2) : "–"}</span>`;
     }
     li.innerHTML = `<span class="fname" title="${esc(t.name)}">${esc(t.name)}</span>${chip}<button class="x" title="Remove">×</button>`;
     li.addEventListener("click", (e) => {
@@ -259,6 +258,7 @@ function showEmpty() {
   $("emptyState").hidden = false; $("testView").hidden = true;
   document.querySelectorAll("#testView .plot").forEach(el => { try { Plotly.purge(el); } catch (e) { /* not drawn yet */ } el.removeAttribute("style"); });
   ["tName", "tFacts", "tBanner", "cycInfo", "rCycle", "mCycle", "rKV", "metricGrid", "aTable"].forEach(id => { $(id).innerHTML = ""; });
+  document.querySelectorAll(".tabwarn").forEach(el => { el.innerHTML = ""; });
   $("rMedian").textContent = "–"; $("rNote").textContent = "";
   state.cycle = 1;
   document.querySelector('#tabs button[data-tab="record"]').click();
@@ -330,21 +330,19 @@ function renderTest(full) {
     `CSR <b>${fmt(csr, 3)}</b>`,
     `max γ<sub>DA</sub> <b>${fmt(gmax, 2)}%</b>`,
     `γ<sub>DA</sub>=9% cycle <b>${r.target_cycle || "not reached"}</b>`,
-    `N<sub>s</sub> (γ<sub>SA</sub>=3%) <b>${r.curvature.N_s ? fmt(r.curvature.N_s, 1) : "not reached"}</b>`,
+    r.curvature.reached
+      ? `N<sub>s</sub> (γ<sub>SA</sub>=3%) <b>${fmt(r.curvature.N_s, 1)}</b>`
+      : `N<sub>s</sub> <b>${r.n_cycles} (last cycle; γ<sub>SA</sub>=3% not reached)</b>`,
   ].map(s => `<span>${s}</span>`).join("");
   const warns = [];
-  const ok = r.assessable;
-  $("cbtCard").style.display = ok ? "" : "none";
-  document.querySelector(".results").classList.toggle("single", !ok);
-  document.querySelectorAll('#tabs button[data-tab="cbt"], #tabs button[data-tab="table"]').forEach(b => b.style.display = ok ? "" : "none");
-  if (!ok && (state.tab === "cbt" || state.tab === "table")) document.querySelector('#tabs button[data-tab="record"]').click();
-  if (!ok) warns.push(`<b>CBT for fine-grained soils cannot be assessed.</b> The test reached a maximum double-amplitude shear strain of ${fmt(gmax, 2)}%, below the required γ<sub>DA</sub> = ${r.gamma_DA_min}%. The test record and metrics are shown for reference only.`);
-  else if (!r.reached_target) warns.push(`The test did not reach γ<sub>DA</sub> = 9% (maximum ${fmt(gmax, 2)}%). Ultimate hysteretic behavior may not have developed, so CBT may be understated.`);
-  if (!r.curvature.reached) warns.push("γ<sub>SA</sub> = 3% was not reached, so κ<sub>γ</sub> is evaluated in time/absolute-strain space and is not comparable with the calibration data.");
+  // γDA < 9%: yellow caution at the top of every tab
+  const caution = r.reached_target ? "" : `<div class="banner yellow"><b>Caution:</b> this test did not reach γ<sub>DA</sub> = 9% (maximum ${fmt(gmax, 2)}%). Be careful when inferring the ultimate hysteretic behavior and susceptibility from this test result.</div>`;
+  document.querySelectorAll(".tabwarn").forEach(el => { el.innerHTML = caution; });
+  if (!r.curvature.reached) warns.push(`γ<sub>SA</sub> = 3% was not reached (maximum ${fmt(r.curvature.gamma_s, 2)}%), so N<sub>s</sub> is taken as the last cycle and κ<sub>γ</sub> is computed from γ<sub>SA</sub>/γ<sub>SA,last</sub> versus N/N<sub>last</sub>.`);
   const gsaMax = Math.max(...r.cycles.map(c => c.gamma_SA || 0));
   if (t.strainUnit === "%" && gsaMax < 0.2) warns.push(`The largest shear strain is only ${fmtG(gsaMax)}%. If your file gives strain as a decimal (e.g. 0.03 for 3%), set <b>Strain</b> to <b>decimal</b> in box 1.`);
   if (t.strainUnit === "dec" && gsaMax > 50) warns.push(`With strain set to <b>decimal</b>, the largest shear strain is ${fmtG(gsaMax)}%. If your file already gives strain in percent, set <b>Strain</b> to <b>%</b> in box 1.`);
-  $("tBanner").innerHTML = warns.map((w, i) => `<div class="banner ${!ok && i === 0 ? "err" : "warn"}">${w}</div>`).join("");
+  $("tBanner").innerHTML = warns.map(w => `<div class="banner warn">${w}</div>`).join("");
   const s = $("cycSlider"); s.max = r.n_cycles; $("cycInput").max = r.n_cycles;
   $("goTarget").disabled = !r.target_cycle;
   if (full) renderRecordStatic(t);
@@ -411,8 +409,8 @@ function renderCycleNow() {
 
   if (state.tab === "record") renderRecordCycle(t, c);
   if (state.tab === "evol") renderEvol(t);
-  if (state.tab === "cbt" && t.res.assessable) renderCBT(t);
-  if (state.tab === "table" && t.res.assessable) renderTable(t, c);
+  if (state.tab === "cbt") renderCBT(t);
+  if (state.tab === "table") renderTable(t, c);
 }
 
 /* ------------------------------------------------------------------ */
@@ -580,8 +578,8 @@ function renderRecordCycle(t, c) {
 
   // 5. Strain accumulation + kappa points
   const cv = r.curvature;
-  const xl = reached ? "N / N<sub>s</sub>" : `Time (${U.time})`;
-  const yl = reached ? "γ<sub>SA</sub> / 3%" : "max |γ| (%)";
+  const xl = reached ? "N / N<sub>s</sub>" : "N / N<sub>last</sub>";
+  const yl = reached ? "γ<sub>SA</sub> / 3%" : `γ<sub>SA</sub> / γ<sub>SA,last</sub> (${fmt(cv.gamma_s, 2)}%)`;
   const e = Math.max(l1, l2 - 1);
   squareReact("pAcc", [
     { x: B.nns, y: B.ggs, type: "scattergl", mode: "lines", line: { color: "#111", width: 1.5 }, name: "Record", hoverinfo: "skip" },
@@ -635,7 +633,7 @@ function renderEvol(t) {
   mk("eHull", "hull", "Ratio<sub>hull</sub>", "Ratio<sub>hull</sub> = A<sub>loop</sub>/A<sub>hull</sub>", [], [0, 1.02]);
   mk("eDg", "dgamma", "Ratio<sub>Δγ</sub>", "Ratio<sub>Δγ</sub> = Δγ<sub>cyc</sub>/γ<sub>FC</sub>", [], null, "tr");
   mk("eGda", "gamma_DA", "γ<sub>DA</sub>", "Double-amplitude shear strain, γ<sub>DA</sub> (%)",
-    [hline(6, "γ<sub>DA</sub> = 6% (minimum)", "#b3261e", "dot"), hline(9, "γ<sub>DA</sub> = 9% (assessment)", "#2e7d4f", "dashdot")], null, "br");
+    [hline(9, "γ<sub>DA</sub> = 9% (assessment)", "#2e7d4f", "dashdot")], null, "br");
 }
 
 const legendPacked = { showlegend: true, legend: { orientation: "v", x: 1.02, xanchor: "left", y: 1, yanchor: "top", font: { size: 10.5 } } };
