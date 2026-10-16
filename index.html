@@ -243,6 +243,7 @@
     <div class="ngl-filters">
       <label><input type="checkbox" id="nglCyclic" checked> Cyclic stages only</label>
       <label title="Also list data that were submitted but not yet reviewed"><input type="checkbox" id="nglUnrev" checked> Include unreviewed data</label>
+      <label title="NGL administrators only: also list data that has never been submitted for review (role=admin). Other accounts get an error."><input type="checkbox" id="nglAdmin"> Admin access</label>
       <label><select id="nglAddCol" aria-label="Add column"></select></label>
       <button class="btn sm" id="nglRefresh" type="button">Refresh</button>
     </div>
@@ -264,7 +265,7 @@
 <script src="js/app.js?v=0.9.11"></script>
 <script src="js/resize.js?v=0.9.9"></script>
 <script src="js/config.js?v=0.9"></script>
-<script src="js/ngl.js?v=0.9.10"></script>
+<script src="js/ngl.js?v=0.9.11"></script>
 <script src="js/export.js?v=0.9.9"></script>
 <script src="js/nav.js?v=0.9.7"></script>
 </body>
