@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CBT Tool – Cyclic Behavior Type from CDSS Tests</title>
 <meta name="description" content="Compute cyclic test metrics and estimate cyclic behavior type (CBT) of fine-grained soils from cyclic direct simple shear test records.">
-<link rel="stylesheet" href="css/style.css?v=0.9.9">
+<link rel="stylesheet" href="css/style.css?v=0.9.10">
 <script src="vendor/plotly.min.js"></script>
 </head>
 <body>
@@ -193,6 +193,17 @@
         <div class="row small" style="margin-bottom:8px">
           <label><input type="checkbox" id="showAnalystLines" checked> Show individual analysts</label>
           <label><input type="checkbox" id="logitSpace"> Distribution in logit space</label>
+          <label title="Fit two straight lines to the combined CBT versus γDA and check whether CBT has stopped changing at the end of the test"><input type="checkbox" id="stabOn"> Stabilization check</label>
+        </div>
+        <div class="stab" id="stabPanel" hidden>
+          <div class="stab-ctrl small">
+            <label title="Drift tolerance: a line keeps adding cycles while its slope stays within X of its starting slope (CBT per 1% γDA). Smaller X gives shorter, straighter lines.">Drift tolerance X
+              <input type="number" id="stabX" min="0.0005" max="0.05" step="0.0005" value="0.005"></label>
+            <button class="btn sm" id="stabReset" type="button">Default (0.005)</button>
+            <span class="muted">Stabilized if the slope of line 2 is below 0.02 per 1% γ<sub>DA</sub> and line 2 spans at least 0.5% γ<sub>DA</sub>.</span>
+          </div>
+          <div id="stabMsg"></div>
+          <div class="stab-disc"><b>Disclaimer:</b> the stabilization check is a generic algorithm. It fits two straight lines to the combined CBT and can misclassify a test (for example, a long, slowly creeping tail can be labelled stabilized, or a test that is just levelling off can be labelled still changing). The result must be evaluated with engineering judgement.</div>
         </div>
         <div class="grid2">
           <div class="plot" id="cEvol"></div>
@@ -250,7 +261,7 @@
 
 <footer>CBT Tool · v0.9.9 · The top boxes can be stretched from their bottom-right corner · <a href="#" id="resetSizes">Reset box sizes</a> · <a class="btn sm lic-btn" href="about.html#license" target="_blank" rel="noopener">License</a></footer>
 
-<script src="js/app.js?v=0.9.9"></script>
+<script src="js/app.js?v=0.9.10"></script>
 <script src="js/resize.js?v=0.9.9"></script>
 <script src="js/config.js?v=0.9"></script>
 <script src="js/ngl.js?v=0.9.9"></script>

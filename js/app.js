@@ -669,6 +669,8 @@ function renderCBT(t) {
   }
   traces.push({ x: gda, y: comb.map(s => s && s.median), type: "scatter", mode: "markers", name: "Combined median",
     marker: { color: "#14283f", size: 7 } });
+  const stabOn = $("stabOn").checked;
+  if (stabOn) traces.push(...stabTraces(t));
   const gSel = cycles[state.cycle - 1].gamma_DA;
   const gT = t.res.target_cycle ? cycles[t.res.target_cycle - 1].gamma_DA : null;
   // marker lines are labelled on the plot instead of in the legend, so the legend fits
@@ -680,6 +682,7 @@ function renderCBT(t) {
     margin: fE.margin,
     xaxis: ax("xaxis", { range: [Math.max(0, gx[0]), gx[1]], title: { text: "Double-amplitude shear strain, γ<sub>DA</sub> (%)", font: { size: 13 } } }),
     yaxis: ax("yaxis", { range: [0, 1], title: { text: "CBT", font: { size: 13 } } }), annotations: notes }, { showlegend: true, legend: fE.legend })), ...rectSize("cEvol", fE.margin));
+  if (stabOn) renderStabPanel(t);
 
   // distribution at current cycle
   const c = cycles[state.cycle - 1];
@@ -715,6 +718,143 @@ function renderCBT(t) {
 }
 $("showAnalystLines").onchange = () => { const t = curTest(); if (t) renderCBT(t); };
 $("logitSpace").onchange = () => { const t = curTest(); if (t) renderCBT(t); };
+
+/* ------------------------------------------------------------------ */
+/*  Stabilization check (CBT tab, optional)                            */
+/*  Two straight lines are grown at the same time on combined CBT vs.  */
+/*  γDA: line 1 forward from the first cycle, line 2 backward from the */
+/*  last cycle. A line takes its next cycle only while its slope stays */
+/*  within X of its seed slope; when both can grow, the one whose      */
+/*  slope changes less takes the cycle; the lines may share only one   */
+/*  cycle. Stabilized = |slope of line 2| < 0.02 per 1% γDA and line 2 */
+/*  spans >= 0.5% γDA. Settings calibrated against expert review of    */
+/*  195 NGL CDSS tests (about 91% agreement).                          */
+/* ------------------------------------------------------------------ */
+const STAB = { X: 0.005, SLOPE_TOL: 0.02, MIN_TAIL: 0.5, SEED_PTS: 2, SEED_STRAIN: 0.5 };
+const C_LINE1 = "#1b9e77", C_LINE2 = "#7b3294";
+
+function linFit(x, y, i0, i1) {   // least squares over indices i0..i1 (inclusive)
+  const n = i1 - i0 + 1;
+  let sx = 0, sy = 0;
+  for (let i = i0; i <= i1; i++) { sx += x[i]; sy += y[i]; }
+  const mx = sx / n, my = sy / n;
+  let sxx = 0, sxy = 0;
+  for (let i = i0; i <= i1; i++) { const dx = x[i] - mx; sxx += dx * dx; sxy += dx * (y[i] - my); }
+  if (sxx <= 0) return { a: my, b: 0 };
+  const b = sxy / sxx;
+  return { a: my - b * mx, b };
+}
+function growTwoLines(x, y, drift) {
+  const n = x.length;
+  let s2 = Math.max(n - STAB.SEED_PTS, 0);                       // line 2 = s2 .. n-1
+  while (s2 > 0 && x[n - 1] - x[s2] < STAB.SEED_STRAIN) s2--;
+  let e1 = Math.min(STAB.SEED_PTS, n) - 1;                        // line 1 = 0 .. e1
+  while (e1 < n - 1 && x[e1] - x[0] < STAB.SEED_STRAIN) e1++;
+  let has1 = e1 < s2;
+  const b20 = linFit(x, y, s2, n - 1).b; let b2 = b20, alive2 = true;
+  let b10 = 0, b1 = 0, alive1 = has1;
+  if (has1) { b10 = linFit(x, y, 0, e1).b; b1 = b10; }
+  while (alive1 || alive2) {
+    if (has1 && e1 >= s2) break;                                   // the lines have met at one cycle
+    const opts = [];
+    if (alive1) {
+      const bn = linFit(x, y, 0, e1 + 1).b;
+      if (Math.abs(bn - b10) <= drift) opts.push([Math.abs(bn - b1), 1, bn]); else alive1 = false;
+    }
+    if (alive2 && s2 > 0) {
+      const bn = linFit(x, y, s2 - 1, n - 1).b;
+      if (Math.abs(bn - b20) <= drift) opts.push([Math.abs(bn - b2), 2, bn]); else alive2 = false;
+    } else alive2 = false;
+    if (!opts.length) break;
+    opts.sort((p, q) => p[0] - q[0]);
+    const [, which, bn] = opts[0];                                // smaller slope change wins the cycle
+    if (which === 1) { e1++; b1 = bn; } else { s2--; b2 = bn; }
+  }
+  const pack = (i0, i1) => Object.assign({ i0, i1, x0: x[i0], x1: x[i1] }, linFit(x, y, i0, i1));
+  return { L1: has1 ? pack(0, e1) : null, L2: pack(s2, n - 1) };
+}
+// result for the current test, analyst selection and X (cached)
+function stabResult(t) {
+  const X = stabX();
+  const key = [t.id, [...state.active].sort().join(","), X].join("|");
+  if (t._stab && t._stab.key === key) return t._stab;
+  const x = [], y = [];
+  let gm = -Infinity;
+  for (const c of t.res.cycles) {
+    const cb = combine(c);
+    if (!cb || !isFinite(c.gamma_DA)) continue;
+    gm = Math.max(gm, c.gamma_DA);                 // strain history is monotonic: running maximum
+    x.push(gm); y.push(cb.median);
+  }
+  const out = { key, X, n: x.length };
+  if (x.length < STAB.SEED_PTS + 1 || x[x.length - 1] - x[0] <= 0) {
+    out.status = "few";
+  } else {
+    Object.assign(out, growTwoLines(x, y, X));
+    out.slope = out.L2.b; out.tail = out.L2.x1 - out.L2.x0; out.gStab = out.L2.x0;
+    out.status = Math.abs(out.slope) >= STAB.SLOPE_TOL ? "changing" : out.tail < STAB.MIN_TAIL ? "short" : "stable";
+  }
+  t._stab = out;
+  return out;
+}
+function stabX() {
+  const v = parseFloat($("stabX").value);
+  return isFinite(v) && v > 0 ? v : STAB.X;
+}
+function stabTraces(t) {
+  const s = stabResult(t);
+  if (!s.L2) return [];
+  const xy = (L) => ({ x: [L.x0, L.x1], y: [L.a + L.b * L.x0, L.a + L.b * L.x1] });
+  // white halo underneath so the line stays visible over closely packed cycles
+  const halo = (L) => Object.assign(xy(L), { type: "scatter", mode: "lines", line: { color: "#fff", width: 10 },
+    hoverinfo: "skip", showlegend: false });
+  const line = (L, name, color, dash) => Object.assign(xy(L), { type: "scatter", mode: "lines",
+    name, line: { color, width: 5, dash }, hoverinfo: "name" });
+  const tr = [];
+  if (s.L1) tr.push(halo(s.L1), line(s.L1, "Line 1 (from start)", C_LINE1, "solid"));
+  tr.push(halo(s.L2), line(s.L2, "Line 2 (from end)", C_LINE2, "dash"));
+  if (s.status === "stable") tr.push({ x: [s.gStab], y: [s.L2.a + s.L2.b * s.gStab], type: "scatter", mode: "markers",
+    name: `Stabilization (γ<sub>DA</sub> ≈ ${fmt(s.gStab, 1)}%)`, marker: { symbol: "diamond", size: 13, color: "gold", line: { color: "#111", width: 1.2 } } });
+  return tr;
+}
+function renderStabPanel(t) {
+  const s = stabResult(t), r = t.res;
+  const gmax = Math.max(...r.cycles.map(c => c.gamma_DA || 0));
+  const reached = !!r.reached_target;
+  const dir = s.slope > 0 ? "increasing (becoming more sand-like)" : "decreasing (becoming more clay-like)";
+  let cls = "banner", msg;
+  if (s.status === "few") {
+    msg = "Too few cycles with a combined CBT to check stabilization.";
+  } else if (s.status === "stable" && reached) {
+    cls = "banner ok";
+    msg = `<b>CBT stabilizes</b> (from γ<sub>DA</sub> ≈ ${fmt(s.gStab, 1)}%) <b>and the test exceeds γ<sub>DA</sub> = 9%.</b> Both support inferring the susceptibility and the ultimate hysteretic behavior from this test.`;
+  } else if (s.status === "stable") {
+    cls = "banner ok";
+    msg = `<b>Even though this test does not reach γ<sub>DA</sub> = 9%</b> (maximum ${fmt(gmax, 2)}%), <b>CBT stabilizes</b> from γ<sub>DA</sub> ≈ ${fmt(s.gStab, 1)}%. The stabilized CBT supports inferring the susceptibility and the ultimate hysteretic behavior from this test.`;
+  } else if (s.status === "changing" && reached) {
+    cls = "banner yellow";
+    msg = `<b>Even though this test exceeds γ<sub>DA</sub> = 9%, CBT has not stabilized:</b> it is still ${dir} at the end of the test. The ultimate behavior may differ from the CBT at γ<sub>DA</sub> = 9%.`;
+  } else if (s.status === "changing") {
+    cls = "banner yellow";
+    msg = `<b>This test does not reach γ<sub>DA</sub> = 9% and CBT has not stabilized:</b> it is still ${dir} at the end of the test. Be careful when inferring the susceptibility and the ultimate hysteretic behavior from this test.`;
+  } else {
+    msg = `<b>Inconclusive:</b> CBT looks flat at the end, but the flat part spans only ${fmt(s.tail, 2)}% γ<sub>DA</sub> (at least ${STAB.MIN_TAIL}% needed).` +
+      (reached ? "" : ` The test also does not reach γ<sub>DA</sub> = 9%.`);
+  }
+  let det = "";
+  if (s.L2) {
+    det = (s.L1 ? `Line 1: γ<sub>DA</sub> ${fmt(s.L1.x0, 2)}–${fmt(s.L1.x1, 2)}%, slope ${fmt(s.L1.b, 3)} · ` : "") +
+      `Line 2: γ<sub>DA</sub> ${fmt(s.L2.x0, 2)}–${fmt(s.L2.x1, 2)}%, slope ${fmt(s.slope, 4)} per 1% (threshold ±${STAB.SLOPE_TOL}) · X = ${s.X}`;
+  }
+  $("stabMsg").innerHTML = `<div class="${cls}">${msg}</div>` + (det ? `<div class="stab-detail">${det}</div>` : "");
+}
+$("stabOn").onchange = () => {
+  $("stabPanel").hidden = !$("stabOn").checked;
+  const t = curTest(); if (t) renderCBT(t);
+  window.dispatchEvent(new Event("resize"));
+};
+$("stabX").onchange = () => { const t = curTest(); if (t) renderCBT(t); };
+$("stabReset").onclick = () => { $("stabX").value = STAB.X; const t = curTest(); if (t) renderCBT(t); };
 
 function renderTable(t, c) {
   const rows = state.analysts.map(a => {
