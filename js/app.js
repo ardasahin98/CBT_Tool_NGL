@@ -726,7 +726,9 @@ $("logitSpace").onchange = () => { const t = curTest(); if (t) renderCBT(t); };
 /*  last cycle. A line takes its next cycle only while its slope stays */
 /*  within X of its seed slope; when both can grow, the one whose      */
 /*  slope changes less takes the cycle; the lines may share only one   */
-/*  cycle. Stabilized = |slope of line 2| < 0.02 per 1% γDA and line 2 */
+/*  cycle. Line 2 may never end with a negative slope: while it is    */
+/*  negative it takes earlier cycles without the drift check.          */
+/*  Stabilized = 0 <= slope of line 2 < 0.02 per 1% γDA and line 2     */
 /*  spans >= 0.5% γDA. Settings calibrated against expert review of    */
 /*  195 NGL CDSS tests (about 91% agreement).                          */
 /* ------------------------------------------------------------------ */
@@ -751,11 +753,17 @@ function growTwoLines(x, y, drift) {
   let e1 = Math.min(STAB.SEED_PTS, n) - 1;                        // line 1 = 0 .. e1
   while (e1 < n - 1 && x[e1] - x[0] < STAB.SEED_STRAIN) e1++;
   let has1 = e1 < s2;
-  const b20 = linFit(x, y, s2, n - 1).b; let b2 = b20, alive2 = true;
+  let b20 = linFit(x, y, s2, n - 1).b, b2 = b20, alive2 = true;
   let b10 = 0, b1 = 0, alive1 = has1;
   if (has1) { b10 = linFit(x, y, 0, e1).b; b1 = b10; }
   while (alive1 || alive2) {
     if (has1 && e1 >= s2) break;                                   // the lines have met at one cycle
+    if (alive2 && b2 < 0) {                                        // negative slope: line 2 needs more cycles
+      if (s2 === 0) break;
+      s2--; b2 = linFit(x, y, s2, n - 1).b;
+      if (b2 >= 0) b20 = b2;                                       // restart the drift check from here
+      continue;
+    }
     const opts = [];
     if (alive1) {
       const bn = linFit(x, y, 0, e1 + 1).b;
@@ -792,7 +800,7 @@ function stabResult(t) {
   } else {
     Object.assign(out, growTwoLines(x, y, X));
     out.slope = out.L2.b; out.tail = out.L2.x1 - out.L2.x0; out.gStab = out.L2.x0;
-    out.status = Math.abs(out.slope) >= STAB.SLOPE_TOL ? "changing" : out.tail < STAB.MIN_TAIL ? "short" : "stable";
+    out.status = (out.slope < 0 || Math.abs(out.slope) >= STAB.SLOPE_TOL) ? "changing" : out.tail < STAB.MIN_TAIL ? "short" : "stable";
   }
   t._stab = out;
   return out;

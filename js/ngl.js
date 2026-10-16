@@ -10,6 +10,23 @@ const TOKEN_LIFE = 2 * 3600 * 1000;
 const STORE = "cbt_ngl_session_v1";
 const PAGE = 5000, IN_CHUNK = 150, LOAD_CHUNK = 10, MAX_ROWS_DRAWN = 3000;
 const NGL_UNITS = { time: "s", stress: "kPa", strain: "%" };   // units of DSSS_DATA in NGL
+// DSSS_IDs of the 258 CDSS stages in the CBT research dataset. NGL codes some of these stages
+// (e.g. OSU-Boone Bridge, Site F) with a loading type other than cyclic (DSSS_TY != 2), so the
+// "Cyclic stages only" filter also keeps every stage in this list.
+const CBT_CDSS_IDS = new Set([
+  8, 10, 12, 14, 16, 18, 20, 22, 30, 32, 34, 36, 50, 52, 54, 56, 66, 68, 70, 72, 80, 82, 86, 96, 98, 100, 102,
+  113, 114, 115, 116, 121, 122, 124, 125, 134, 135, 136, 137, 138, 139, 143, 144, 145, 146, 147, 148, 149, 150,
+  151, 152, 153, 154, 155, 156, 157, 159, 160, 162, 163, 164, 165, 167, 168, 169, 172, 173, 174, 175, 176, 178,
+  179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 197, 198, 199, 200, 201, 202, 203, 204, 205,
+  206, 207, 208, 209, 214, 215, 216, 217, 219, 220, 221, 222, 223, 224, 226, 227, 228, 236, 237, 260, 261, 262,
+  263, 264, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305,
+  306, 307, 308, 309, 310, 311, 312, 314, 315, 317, 318, 319, 330, 338, 340, 343, 344, 346, 348, 354, 357, 364,
+  366, 368, 370, 372, 376, 378, 379, 380, 383, 385, 386, 388, 390, 392, 411, 413, 418, 422, 425, 429, 431, 435,
+  437, 441, 443, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 473, 475, 481, 483, 485, 487, 489, 493,
+  498, 500, 502, 504, 510, 512, 514, 516, 526, 528, 530, 532, 534, 536, 538, 540, 565, 566, 582, 611, 620, 627,
+  630, 631, 632, 633, 634, 635, 638, 639, 642, 644, 645, 649, 653, 657, 661, 663, 665, 667, 671, 672, 674, 675,
+  676, 678, 680, 692, 694, 696, 698, 700, 704, 706, 708
+]);
 const EP = {
   token: "/users/api-token",
   stages: "/direct-simple-shear-test-stages/api-index",
@@ -240,7 +257,9 @@ async function loadList() {
     const raw = Object.assign({}, sa, sp, t, st);
     Object.keys(raw).forEach(k => keys.add(k));
     const typeCode = bitOrInt(st.DSSS_TY), drCode = bitOrInt(st.DSSS_DR);
-    const typeVal = LOADING_TYPE[typeCode] ?? (has(st.DSSS_TY) ? `type ${st.DSSS_TY}` : "");
+    const inCbt = CBT_CDSS_IDS.has(Number(st.DSSS_ID));
+    let typeVal = LOADING_TYPE[typeCode] ?? (has(st.DSSS_TY) ? `type ${st.DSSS_TY}` : "");
+    if (inCbt && typeCode !== 2) typeVal = (typeVal ? typeVal + " in NGL; " : "") + "cyclic (CBT dataset)";
     const drain = drCode === 1 ? "undrained" : drCode === 0 ? "drained" : "";
     const fromAny = (k) => (k ? (t[k] ?? sp[k] ?? st[k] ?? "") : "");
     const cits = citKey ? [...new Set(plist.flatMap(p => (pcMap.get(String(p.LAB_PROGRAM_ID)) || []).map(c => c[citKey])).filter(has))] : [];
@@ -251,8 +270,9 @@ async function loadList() {
       meta: { labs: labObjs, progs: plist, cits: citObjs, spec: sp, samp: sa, plas: pl, dssg: t, dsss: st },
       id: st.DSSS_ID, stage: st.DSSS_ST ?? "", test: st.DSSG_ID ?? "",
       prog: progsTxt.join("; "), progs: progsTxt, lab: labsTxt.join("; "), labs: labsTxt,
-      samp: pick(sa, ["SAMP_NAME"]), spec: pick(sp, ["SPEC_REF", "SPEC_NAME"]),
-      type: typeVal, cyclic: S.cyclicKnown ? typeCode === 2 : true, drain,
+      // both specimen labels, so a search finds either (e.g. "F-1-1")
+      samp: pick(sa, ["SAMP_NAME"]), spec: [...new Set(["SPEC_REF", "SPEC_NAME"].map(k => sp[k]).filter(has).map(String))].join(" / "),
+      type: typeVal, cyclic: S.cyclicKnown ? (typeCode === 2 || inCbt) : true, drain,
       cit: cits.join(", "), e0: fromAny(e0Key), w0: fromAny(w0Key),
       ll: llKey ? (pl[llKey] ?? "") : "", pl: plPlKey ? (pl[plPlKey] ?? "") : "", pi: piKey ? (pl[piKey] ?? "") : "", raw,
     };
@@ -425,7 +445,7 @@ document.addEventListener("click", (e) => {
 
 function fillFilters() {
   $("nglCyclic").disabled = !S.cyclicKnown;
-  $("nglCyclic").closest("label").title = S.cyclicKnown ? "Stages with DSSS_TY = 2 (cyclic loading)" : "Cyclic stages could not be identified";
+  $("nglCyclic").closest("label").title = S.cyclicKnown ? "Stages with DSSS_TY = 2 (cyclic loading), plus the CDSS stages of the CBT dataset" : "Cyclic stages could not be identified";
   $("nglAddCol").innerHTML = `<option value="">Add column…</option>` +
     S.rawKeys.filter(k => !S.extraCols.includes(k)).map(k => `<option>${esc(k)}</option>`).join("");
 }
