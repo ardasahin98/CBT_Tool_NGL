@@ -1,0 +1,64 @@
+<!-- title: Your first test -->
+<!-- description: A short tutorial: load an example CDSS test, read its CBT and metrics, compare cycles and download the results. -->
+<h1>Your first test</h1>
+<p class="lead">In this tutorial you'll load one of the example tests, read its CBT, compare two cycles, and download the results. It takes about five minutes.</p>
+
+<h2 id="open">Step 1: Open the tool</h2>
+<p>Open the <a href="../index.html">CBT Tool</a> in a recent version of Chrome, Edge, Firefox or Safari. While the calculation engine starts, a progress bar shows <i>Starting the calculation engine…</i> The first visit downloads about 30 MB (Python, NumPy and SciPy for the browser); later visits load from the browser's cache in a few seconds.</p>
+<p>When it's ready, the Example buttons become active. The page has four boxes across the top:</p>
+<!-- figure: controls.png | The four boxes at the top of the tool: (1) template, examples and units, (2) upload and NGL loading, the analyst models, and the export box. -->
+<ol class="steps">
+    <li><b>Prepare your data:</b> the CSV template, three example tests, and the units of the file.</li>
+    <li><b>Upload test files:</b> drop CSV files here, or load tests from the NGL database. Each loaded test is listed with its CBT.</li>
+    <li><b>Analyst models:</b> the ten analyst models that are combined into one CBT estimate. All are ticked by default.</li>
+    <li><b>Export:</b> download the results or the raw data of the tests you pick.</li>
+</ol>
+
+<h2 id="load">Step 2: Load Example 1</h2>
+<p>Click <b>Example 1</b>. The tool sets the units for this file (time in minutes, stress in psf, strain as a decimal), computes the metrics and CBT for every cycle, and shows the test. This takes a second or two.</p>
+<p>Example 1 is a CDSS test with 211 loading cycles at a cyclic stress ratio of about 0.39 and σ′<sub>v0</sub> = 2611 psf. It reaches γ<sub>DA</sub> = 9% in cycle 126 and ends at γ<sub>DA</sub> = 11.48%.</p>
+
+<h2 id="read">Step 3: Read the result</h2>
+<p>The left column shows the test and the selected cycle. By default this is the <b>last cycle</b>, 211:</p>
+<!-- figure: results.png | Test summary, combined CBT and metrics for the last cycle of Example 1. -->
+<ul>
+    <li><b>The summary at the top</b> lists the number of cycles, σ′<sub>v0</sub>, CSR, the largest γ<sub>DA</sub>, the first cycle with γ<sub>DA</sub> ≥ 9%, and N<sub>s</sub>, the number of cycles to reach a single-amplitude strain of 3%.</li>
+    <li><b>Combined CBT</b> is 0.13: the test is <b>clay-like</b>. The gauge shows the median (dark line) and the 16th–84th percentile range (grey band), here 0.03 to 0.45. The table below gives the median, mean, percentiles, and the mean and standard deviation in logit space (μ<sub>T</sub>, σ<sub>T</sub>), split into within- and between-analyst parts.</li>
+    <li><b>Metrics</b> are the four predictors used by the models at this cycle. Here the maximum excess pore pressure ratio is only 0.57 after 211 cycles, and the strain accumulation curvature κ<sub>γ</sub> is close to zero (strain accumulates steadily, not at an accelerating rate). Both point to clay-like behavior.</li>
+</ul>
+<p>Hover over any value to see a short description, or click <b>ⓘ Symbols</b> for the <a href="symbols.html">list of symbols</a>.</p>
+
+<h2 id="cycles">Step 4: Look at another cycle</h2>
+<p>CBT is computed for every cycle, so you can see how it changes during the test. Use the slider, the ◀ ▶ buttons, or type a cycle number. Click <b>First γ<sub>DA</sub> ≥ 9%</b> to jump to cycle 126:</p>
+<div class="table-wrap"><table>
+    <thead><tr><th>Cycle</th><th>γ<sub>DA</sub> (%)</th><th>r<sub>u,max</sub></th><th>Ratio<sub>hull</sub></th><th>Combined CBT (median)</th><th>16–84%</th></tr></thead>
+    <tbody>
+        <tr><td>126 (first γ<sub>DA</sub> ≥ 9%)</td><td>9.01</td><td>0.470</td><td>0.937</td><td>0.086</td><td>0.02–0.34</td></tr>
+        <tr><td>211 (last)</td><td>11.48</td><td>0.573</td><td>1.00</td><td>0.126</td><td>0.03–0.45</td></tr>
+    </tbody>
+</table></div>
+<p>Both cycles give a clay-like CBT. The cycle at γ<sub>DA</sub> = 9% is marked because hysteretic behavior has usually developed by then; see <a href="results.html#cycle">Which cycle to use</a>.</p>
+
+<h2 id="plots">Step 5: The plots</h2>
+<p>The right side has four tabs:</p>
+<ul>
+    <li><b>Test record:</b> the stress–strain loops with the convex hull of the selected cycle, the stress path, the strain and pore pressure histories, and the strain accumulation curve used for κ<sub>γ</sub>.</li>
+    <li><b>Metrics vs. cycle:</b> how r<sub>u,max</sub>, Ratio<sub>hull</sub>, Ratio<sub>Δγ</sub> and γ<sub>DA</sub> develop over the test.</li>
+    <li><b>CBT:</b> CBT of each analyst and the combined median against γ<sub>DA</sub>, and the probability distribution of CBT at the selected cycle.</li>
+    <li><b>Analyst results:</b> a table of each analyst model's estimate at the selected cycle.</li>
+</ul>
+<p><a href="results.html">Reading the results</a> explains each plot.</p>
+
+<h2 id="compare">Step 6: Compare with a sand-like test</h2>
+<p>Click <b>Example 3</b>. It is added to the file list under Example 1; click either name to switch between them. Example 3 reaches r<sub>u,max</sub> = 0.87, its loops pinch (Ratio<sub>hull</sub> = 0.84 at the last cycle) and its strain accumulation accelerates (κ<sub>γ</sub> = 1.06). Its combined CBT at the last cycle is 0.80: <b>sand-like</b>.</p>
+<p>Example 2 shows what happens when a test stops before γ<sub>DA</sub> = 9%: CBT is still reported, with a yellow caution (see <a href="results.html#caution">The γ<sub>DA</sub> = 9% caution</a>).</p>
+
+<h2 id="download">Step 7: Download</h2>
+<p>In the <b>Export</b> box, the dropdown lists the loaded tests, all ticked. Click <b>Results</b> to download a .zip with one CSV file of per-cycle metrics and CBT for each test, a summary table (when more than one test is ticked), and a disclaimer. <a href="downloads.html">Downloads</a> describes the columns.</p>
+
+<h2 id="next">Next steps</h2>
+<ul>
+    <li><a href="input-files.html">Prepare your own test files</a> from the CSV template.</li>
+    <li><a href="ngl.html">Load tests from the NGL database</a>.</li>
+    <li>Read how the metrics and models work in <a href="method.html">Metrics and CBT models</a>.</li>
+</ul>

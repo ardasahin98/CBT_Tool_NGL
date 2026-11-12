@@ -1,0 +1,58 @@
+<!-- title: Running and hosting -->
+<!-- description: Run the CBT Tool on your own computer, host it on a web server, connect it to the NGL API, and rebuild the documentation. -->
+<h1>Running and hosting</h1>
+<p class="lead">The CBT Tool is a static website: HTML, JavaScript and a Python file that runs in the browser. It needs no server-side code, so any web server can host it.</p>
+
+<h2 id="layout">What's in the repository</h2>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Path</th><th>Contents</th></tr></thead>
+    <tbody>
+        <tr><td><code>index.html</code>, <code>css/</code>, <code>js/app.js</code></td><td>The tool page and its plots (Plotly)</td></tr>
+        <tr><td><code>about.html</code></td><td>Input format, method, symbols, citation and license, as a single page linked from the tool</td></tr>
+        <tr><td><code>py/cbt_core.py</code></td><td>Metric and CBT code. The top half is taken verbatim from the batch-processing code used for the paper (<code>Data_Smooth</code> … <code>ru_calc</code>, <code>Ns_calculation</code>, <code>three_point_curvature</code>); the bottom half adds the hull ratio, Ratio<sub>Δγ</sub>, κ<sub>γ</sub>, the CBT prediction and the analyst combination</td></tr>
+        <tr><td><code>js/worker.js</code></td><td>Web worker that starts Pyodide and calls the Python code, so the page stays responsive</td></tr>
+        <tr><td><code>data/models.json</code></td><td>Posterior samples (4 chains × 1,000) of the final model of each of the ten analysts</td></tr>
+        <tr><td><code>js/export.js</code></td><td>Results and raw data downloads; <code>TOOL_VERSION</code> is set here</td></tr>
+        <tr><td><code>js/ngl.js</code>, <code>js/config.js</code></td><td>NGL sign-in, test-stage browser and loader; the API address and optional relay</td></tr>
+        <tr><td><code>template/</code>, <code>examples/</code></td><td>The CSV template and the three example tests</td></tr>
+        <tr><td><code>vendor/</code></td><td>Pyodide 0.29.3 (with NumPy 2.2.5 and SciPy 1.14.1) and Plotly 2.35.2, hosted with the tool so it does not depend on a CDN</td></tr>
+        <tr><td><code>serve.py</code></td><td>Local web server with a relay to the NGL API</td></tr>
+        <tr><td><code>vercel.json</code>, <code>proxy/</code></td><td>NGL relay for Vercel, and an optional Cloudflare Worker relay</td></tr>
+        <tr><td><code>tools/build_models.py</code></td><td>Rebuilds <code>data/models.json</code> from the PyMC results</td></tr>
+        <tr><td><code>docs/</code>, <code>tools/build_docs.py</code></td><td>This documentation and its build script</td></tr>
+    </tbody>
+</table></div>
+
+<h2 id="local">Run it on your computer</h2>
+<p>Browsers do not run web workers on pages opened directly from disk (<code>file://</code>), so serve the folder. With Python 3 installed, from the repository folder:</p>
+<pre><code>python serve.py</code></pre>
+<p>and open <a href="http://localhost:8000">http://localhost:8000</a>. <code>serve.py</code> is a plain static server plus a relay to the NGL API, so loading tests from NGL works locally too. <code>python -m http.server 8000</code> also works, except for the NGL connection.</p>
+
+<h2 id="host">Host it on a web server</h2>
+<p>Copy the repository (without <code>.git</code>) to any static web host: a university web server, GitHub Pages, Netlify, Cloudflare Pages or Vercel. That is all that uploading and analysing CSV files needs; loading tests from NGL needs one more step, below.</p>
+<p>The site sets no cookies and uses no analytics. Pyodide's files are large (about 30 MB in total); the server should send <code>.wasm</code> files as <code>application/wasm</code> (most do) so the browser can compile them while they download.</p>
+
+<h3 id="ngl-relay">Connecting to the NGL API</h3>
+<p>Browsers block a page from calling another site's API unless that site allows it (CORS). The tool tries, in order: a relay at <code>/ngl/…</code> on its own address, NGL directly, and the relay set in <code>js/config.js</code>. If all fail, the error lists what happened with each. Depending on where the tool is hosted:</p>
+<ul>
+    <li><b>On the NGL website itself</b> (same origin): no relay is needed.</li>
+    <li><b>Locally:</b> <code>python serve.py</code> provides the <code>/ngl/…</code> relay.</li>
+    <li><b>Vercel:</b> <code>vercel.json</code> (at the repository root) rewrites <code>/ngl/users/api-token</code> and <code>/ngl/&lt;table&gt;/api-index</code> to the NGL API server-side.</li>
+    <li><b>Other static hosts</b> (GitHub Pages, a university server): ask the NGL administrators to allow the site's origin on <code>/users/api-token</code> and <code>*/api-index</code>, or deploy the Cloudflare Worker in <code>proxy/</code> and set its URL as <code>proxy</code> in <code>js/config.js</code> (see <code>proxy/README.md</code>).</li>
+</ul>
+<p>The relays forward only the token and API-index endpoints and do not log or store credentials.</p>
+
+<h2 id="pages">GitHub Pages and this documentation</h2>
+<p>The documentation pages are HTML fragments in <code>docs/pages/</code>, wrapped in <code>docs/_layout.html</code> by <code>tools/build_docs.py</code> (Python standard library only). The script builds the whole published site into <code>_site/</code>: the tool at the root and the documentation in <code>_site/docs/</code>. It also checks every internal link.</p>
+<pre><code>python tools/build_docs.py           # build _site/
+python tools/build_docs.py --serve   # build, then serve at http://localhost:8081/docs/</code></pre>
+<p>Pushing to <code>main</code> runs <code>.github/workflows/pages.yml</code>, which builds <code>_site/</code> and publishes it to GitHub Pages. One-time setup in the repository: <b>Settings → Pages → Build and deployment → Source: GitHub Actions</b>.</p>
+<p>The screenshots in <code>docs/images/</code> are taken from the running tool with the examples loaded; retake them after changing the interface.</p>
+
+<h2 id="release">Releasing a new version</h2>
+<ol class="steps">
+    <li>Set the version in <code>js/export.js</code> (<code>TOOL_VERSION</code>), the footers of <code>index.html</code> and <code>about.html</code>, <code>CITATION.cff</code> and <code>codemeta.json</code>, and the release date in the last two.</li>
+    <li>Update the cache-busting <code>?v=</code> suffixes in <code>index.html</code> for the files that changed.</li>
+    <li>Commit, tag (<code>git tag v1.0.0</code>) and push, then create a GitHub release from the tag.</li>
+    <li>Publish the release on DesignSafe, which assigns the version its DOI, and add the DOI to <code>CITATION.cff</code>, <code>codemeta.json</code>, the README and <a href="citing.html">Citation and license</a>.</li>
+</ol>

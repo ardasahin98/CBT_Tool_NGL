@@ -1,0 +1,69 @@
+<!-- title: Reading the results -->
+<!-- description: What each part of the CBT Tool's results shows: the test summary, CBT and its uncertainty, the metrics, the plots, and the γDA = 9% caution. -->
+<h1>Reading the results</h1>
+<p class="lead">What each box and plot shows, which cycle to read CBT at, and what the yellow caution means.</p>
+
+<h2 id="files">The file list</h2>
+<p>Every loaded test is listed in box 2 with a chip showing its state: <i>queued</i>, <i>computing…</i>, <i>error</i> (hover for the message), or its combined CBT at the last cycle. A yellow chip means the test did not reach γ<sub>DA</sub> = 9%. Click a name to show that test; × removes it.</p>
+
+<h2 id="summary">Test summary and cycle</h2>
+<p>The box at the top left gives the file name (and the NGL identifiers for NGL tests) and a summary of the whole record:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Item</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td>Cycles</td><td>Number of loading cycles detected. A cycle starts where the shear stress crosses zero from negative to positive.</td></tr>
+        <tr><td>σ′<sub>v0</sub></td><td>Vertical effective stress at the start of cyclic loading (first row of the file).</td></tr>
+        <tr><td>CSR</td><td>Largest cyclic stress ratio, τ/σ′<sub>v0</sub>, over the test.</td></tr>
+        <tr><td>max γ<sub>DA</sub></td><td>Largest double-amplitude shear strain.</td></tr>
+        <tr><td>γ<sub>DA</sub>=9% cycle</td><td>First cycle with γ<sub>DA</sub> ≥ 9%, or <i>not reached</i>.</td></tr>
+        <tr><td>N<sub>s</sub> (γ<sub>SA</sub>=3%)</td><td>Number of cycles to a single-amplitude strain of 3%, interpolated within the cycle; the last cycle if 3% is not reached.</td></tr>
+    </tbody>
+</table></div>
+<p>Below it, choose the cycle at which CBT and the metrics are shown: the slider, ◀ ▶, a cycle number, <b>Last cycle</b>, or <b>First γ<sub>DA</sub> ≥ 9%</b>. The line underneath gives γ<sub>DA</sub>, γ<sub>SA</sub> and CSR of the selected cycle.</p>
+
+<h2 id="cycle">Which cycle to use</h2>
+<p>By default the tool shows the <b>last cycle</b>. Ultimate hysteretic behavior tends to have developed by the cycle in which γ<sub>DA</sub> reaches 9%, so that cycle is marked in every plot and can be selected with one click. For a test carried well past 9%, comparing the two shows whether CBT is still changing.</p>
+
+<h2 id="caution">The γ<sub>DA</sub> = 9% caution</h2>
+<!-- figure: caution.png | The caution shown on every tab for a test that stops before γDA = 9% (Example 2). -->
+<p>If a test stops before γ<sub>DA</sub> = 9%, CBT is still reported, but a yellow caution is shown on every tab, the chip in the file list turns yellow, and the downloads carry the same note. Such a test may have stopped before its ultimate hysteretic behavior and susceptibility developed, so be careful when inferring them from it.</p>
+
+<h2 id="cbt">Combined CBT</h2>
+<p>The large number is the <b>median</b> of the combined CBT distribution at the selected cycle. The gauge runs from 0 (clay-like) to 1 (sand-like); the dark line is the median and the grey band the 16th–84th percentile range.</p>
+<p>The table under the gauge:</p>
+<ul>
+    <li><b>Median</b>, <b>Mean</b>: the median is expit(μ<sub>T</sub>); the mean differs because the logit transformation is not linear.</li>
+    <li><b>16–84%</b>, <b>5–95%</b>: percentile ranges, expit(μ<sub>T</sub> ± σ<sub>T</sub>) and expit(μ<sub>T</sub> ± 1.645σ<sub>T</sub>).</li>
+    <li><b>μ<sub>T</sub></b>, <b>σ<sub>T</sub></b>: mean and standard deviation of logit(CBT), the space in which the models work.</li>
+    <li><b>σ within</b>: how uncertain each analyst's own estimate is. <b>σ between</b>: how much the analysts disagree. σ<sub>T</sub>² is the sum of their squares.</li>
+    <li><b>Analysts</b>: how many of the ten analyst models are combined (see <a href="analysts.html">Analyst models</a>).</li>
+</ul>
+<p>The uncertainty is wide by design: it carries both the scatter of each analyst's judgments and the disagreement between analysts. Read CBT with its range, not only the median.</p>
+
+<h2 id="metrics">Metrics</h2>
+<p>The four predictors at the selected cycle: r<sub>u,max</sub>, Ratio<sub>hull</sub>, Ratio<sub>Δγ</sub>, and κ<sub>γ</sub> (one value for the whole record). They are defined in <a href="method.html#metrics">Metrics and CBT models</a>. Hover over a value for a short description.</p>
+
+<h2 id="record">Test record tab</h2>
+<!-- figure: tab-record.png | Test record tab for Example 1, last cycle. -->
+<ul>
+    <li><b>Stress–strain loops</b> (top left): all cycles in grey, the selected cycle in black, and its convex hull in orange. Ratio<sub>hull</sub> is the loop area divided by the hull area: a pinched, banana-shaped loop fills less of its hull.</li>
+    <li><b>Stress path</b> (top middle): τ/σ′<sub>v0</sub> against σ′<sub>v</sub>/σ′<sub>v0</sub>.</li>
+    <li><b>Strain history</b> (bottom left) and <b>vertical effective stress history</b>, σ′<sub>v</sub>/σ′<sub>v0</sub> = 1 − r<sub>u</sub> (bottom middle), with time on the vertical axis and reference lines at r<sub>u</sub> = 0.90, 0.95 and 1.0.</li>
+    <li><b>Strain accumulation</b> (right): γ<sub>SA</sub>/γ<sub>s</sub> against N/N<sub>s</sub>. The red points at 10%, 50% and 90% of the record give κ<sub>γ</sub>; the blue diamond is the selected cycle.</li>
+</ul>
+
+<h2 id="evol">Metrics vs. cycle tab</h2>
+<!-- figure: tab-evol.png | r<sub>u,max</sub>, Ratio<sub>hull</sub>, Ratio<sub>Δγ</sub> and γ<sub>DA</sub> against cycle number for Example 1. -->
+<p>How r<sub>u,max</sub>, Ratio<sub>hull</sub>, Ratio<sub>Δγ</sub> and γ<sub>DA</sub> develop over the test. The solid black line is the selected cycle, the dashed green line the first cycle with γ<sub>DA</sub> ≥ 9%.</p>
+
+<h2 id="cbt-tab">CBT tab</h2>
+<!-- figure: tab-cbt.png | CBT against γDA for each analyst and combined (left), and the CBT distributions at the selected cycle (right). -->
+<ul>
+    <li><b>Left:</b> CBT of each analyst model (small dots) and the combined median (large dots) against γ<sub>DA</sub>, for every cycle. This shows how the estimate develops as the test proceeds.</li>
+    <li><b>Right:</b> the probability density of CBT at the selected cycle, for each analyst and combined. Tick <b>Distribution in logit space</b> to see them as the normal distributions the models produce.</li>
+    <li><b>Show individual analysts</b> turns the per-analyst curves on and off.</li>
+</ul>
+
+<h2 id="table">Analyst results tab</h2>
+<!-- figure: tab-table.png | Each analyst model's estimate at the selected cycle, and the combined result. -->
+<p>One row per analyst model: its predictors, μ<sub>T</sub> and σ<sub>T</sub>, the two parts of σ<sub>T</sub> (σ coef., from the uncertainty of the coefficients, and σ̂ model, the model's own scatter), the median CBT, the 16–84% range and its weight. The last row is the combination. Unticked analysts are greyed out.</p>

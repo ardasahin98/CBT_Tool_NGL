@@ -1,0 +1,136 @@
+# Citation metadata for this repository (https://citation-file-format.github.io).
+# GitHub reads it from the default branch for the "Cite this repository" button.
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below, together with the paper that describes the method."
+type: software
+title: "Cyclic Behavior Type (CBT) Tool"
+abstract: >-
+  The Cyclic Behavior Type (CBT) Tool is open-source software that estimates
+  whether a fine-grained soil responds to cyclic loading more like a sand or
+  more like a clay, from the record of a cyclic direct simple shear (CDSS)
+  test. For every loading cycle it computes test metrics that describe the
+  stress-strain loops, the excess pore pressure and the strain accumulation:
+  the maximum excess pore pressure ratio, the ratio of the loop area to the
+  area of its convex hull, the cyclic strain increment ratio, and the strain
+  accumulation curvature. From these it estimates the cyclic behavior type
+  (CBT), from 0 (clay-like) to 1 (sand-like), with ten Bayesian regression
+  models that reproduce the judgments of ten analysts who classified 195 CDSS
+  tests from the Next Generation Liquefaction (NGL) database. The analyst
+  models are combined with equal weights in logit space, and the result is
+  reported with its within- and between-analyst uncertainty. The tool is a
+  static website: the Python code runs in the web browser with Pyodide, so
+  uploaded test files never leave the user's computer. Tests can be uploaded
+  as CSV files in any time and stress units, or loaded directly from the NGL
+  database through its REST API. Per-cycle results and batch summaries are
+  downloaded as CSV files.
+authors:
+  - given-names: "Arda"
+    family-names: "Sahin"
+    email: "arda120222@g.ucla.edu"
+    affiliation: "Department of Civil and Environmental Engineering, University of California, Los Angeles"
+    orcid: "https://orcid.org/0009-0009-7676-6567"
+  - given-names: "V. N. S."
+    family-names: "Renugah"
+  - given-names: "Kristin J."
+    family-names: "Ulmer"
+    affiliation: "Southwest Research Institute"
+  - given-names: "A."
+    family-names: "Jana"
+  - given-names: "Scott J."
+    family-names: "Brandenberg"
+    email: "sjbrandenberg@g.ucla.edu"
+    affiliation: "Department of Civil and Environmental Engineering, University of California, Los Angeles"
+    orcid: "https://orcid.org/0000-0003-2493-592X"
+  - given-names: "K. Onder"
+    family-names: "Cetin"
+    affiliation: "Department of Civil Engineering, Middle East Technical University"
+  - given-names: "T. Matthew"
+    family-names: "Evans"
+    affiliation: "School of Civil and Construction Engineering, Oregon State University"
+  - given-names: "Steven L."
+    family-names: "Kramer"
+    affiliation: "Department of Civil and Environmental Engineering, University of Washington"
+  - given-names: "Armin W."
+    family-names: "Stuedlein"
+    affiliation: "School of Civil and Construction Engineering, Oregon State University"
+  - given-names: "Jonathan P."
+    family-names: "Stewart"
+    email: "jstewart@seas.ucla.edu"
+    affiliation: "Department of Civil and Environmental Engineering, University of California, Los Angeles"
+version: "1.0.0"
+date-released: "2026-11-12"
+license: BSD-3-Clause
+repository-code: "https://github.com/ardasahin98/CBT_Tool_NGL"
+url: "https://ardasahin98.github.io/CBT_Tool_NGL/"
+keywords:
+  - geotechnical earthquake engineering
+  - cyclic behavior type
+  - fine-grained soils
+  - cyclic softening
+  - liquefaction
+  - cyclic direct simple shear
+  - laboratory testing
+  - Bayesian regression
+  - expert judgment
+  - Next Generation Liquefaction database
+  - Pyodide
+  - natural hazards
+references:
+  - type: article
+    title: "Cyclic Behavior Type Assessment Conditioned on Laboratory Test Metrics for Fine-grained Soils"
+    status: in-preparation
+    authors:
+      - family-names: "Sahin"
+        given-names: "A."
+      - family-names: "Renugah"
+        given-names: "V. N. S."
+      - family-names: "Ulmer"
+        given-names: "K. J."
+      - family-names: "Jana"
+        given-names: "A."
+      - family-names: "Brandenberg"
+        given-names: "S. J."
+      - family-names: "Cetin"
+        given-names: "K. O."
+      - family-names: "Evans"
+        given-names: "T. M."
+      - family-names: "Kramer"
+        given-names: "S. L."
+      - family-names: "Stuedlein"
+        given-names: "A. W."
+      - family-names: "Stewart"
+        given-names: "J. P."
+  - type: article
+    title: "Next-generation liquefaction database"
+    journal: "Earthquake Spectra"
+    volume: 36
+    issue: 2
+    start: 939
+    end: 959
+    year: 2020
+    doi: "10.1177/8755293020902477"
+    authors:
+      - family-names: "Brandenberg"
+        given-names: "S. J."
+      - family-names: "Zimmaro"
+        given-names: "P."
+      - family-names: "Stewart"
+        given-names: "J. P."
+      - family-names: "Kwak"
+        given-names: "D. Y."
+      - family-names: "Franke"
+        given-names: "K. W."
+      - family-names: "Moss"
+        given-names: "R. E. S."
+      - family-names: "Cetin"
+        given-names: "K. O."
+      - family-names: "Can"
+        given-names: "G."
+      - family-names: "Ilgac"
+        given-names: "M."
+      - family-names: "Stamatakos"
+        given-names: "J."
+      - family-names: "Weaver"
+        given-names: "T."
+      - family-names: "Kramer"
+        given-names: "S. L."

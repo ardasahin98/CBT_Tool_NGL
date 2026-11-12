@@ -1,0 +1,68 @@
+<!-- title: Preparing test files -->
+<!-- description: The CSV layout the CBT Tool reads, units, and which tests the models apply to. -->
+<h1>Preparing test files</h1>
+<p class="lead">One CSV file per CDSS test (or test stage), with four or five columns. The tool reads any time and stress unit, and shear strain in percent or as a decimal.</p>
+
+<h2 id="template">The template</h2>
+<p>Download the template from box 1 of the tool, or here: <a href="CBT_CDSS_Template.csv" download>CBT_CDSS_Template.csv</a>. It has one header row:</p>
+<pre><code>Time,Shear Stress,Vertical Effective Stress,Shear Strain,Vertical Strain</code></pre>
+<p>Fill in one row per recorded point, in the order of the columns below:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>#</th><th>Quantity</th><th>Unit</th><th>Notes</th></tr></thead>
+    <tbody>
+        <tr><td>1</td><td>Time, t</td><td>s, min or h</td><td>Non-decreasing</td></tr>
+        <tr><td>2</td><td>Shear stress, τ</td><td>kPa, MPa, psf, psi or atm</td><td>Signed: positive and negative half-cycles</td></tr>
+        <tr><td>3</td><td>Vertical effective stress, σ′<sub>v</sub></td><td>Same unit as τ</td><td>The first row is taken as σ′<sub>v0</sub>, at the start of cyclic loading</td></tr>
+        <tr><td>4</td><td>Shear strain, γ</td><td>% or decimal</td><td>Signed</td></tr>
+        <tr><td>5</td><td>Vertical strain</td><td>any</td><td>Optional; not used in the calculations</td></tr>
+    </tbody>
+</table></div>
+<p>A short file looks like this (the examples have thousands of rows):</p>
+<pre><code>Time,Shear Stress,Vertical Effective Stress,Shear Strain,Vertical Strain
+0.000,0.0,31.70,0.000,0.000
+0.100,0.3,31.70,0.000,-0.007
+0.200,0.9,31.68,0.001,-0.007
+...</code></pre>
+
+<h3 id="rules">Rules</h3>
+<ul>
+    <li>The <b>first line is a header</b> and is skipped. Further rows that are not numbers (a second header row with units, for example) are skipped too.</li>
+    <li>Lines that begin with <code>#</code> are comments and are ignored.</li>
+    <li>Rows with a missing or non-numeric value in columns 1–4 are skipped.</li>
+    <li>At least <b>50 valid rows</b> and <b>two loading cycles</b> are needed.</li>
+    <li>The record should <b>start at the beginning of cyclic loading</b>, after consolidation: the first row's vertical effective stress is σ′<sub>v0</sub>.</li>
+    <li>Use a point as the decimal separator (<code>12.5</code>), and commas between columns.</li>
+</ul>
+
+<h2 id="units">Units</h2>
+<p>Choose the units of a file in box 1 of the tool, under the Examples. The selection applies to the files you upload next, and changing it updates the file currently shown, so you can fix the units after uploading.</p>
+<ul>
+    <li><b>Time and stress</b> units only change the plot labels. Every metric uses ratios of stress or time (r<sub>u</sub>, τ/σ′<sub>v0</sub>, Ratio<sub>hull</sub>, N/N<sub>s</sub>), so the results do not depend on them.</li>
+    <li><b>Shear strain</b> does matter: the strain thresholds (γ<sub>DA</sub> = 9%, γ<sub>s</sub> = 3%) are in percent. Strain entered as a decimal (0.03) is multiplied by 100 before any calculation, and results are always shown in percent.</li>
+</ul>
+<p>The excess pore pressure ratio is computed from the vertical effective stress, r<sub>u</sub> = (σ′<sub>v0</sub> − σ′<sub>v</sub>) / σ′<sub>v0</sub>, as in constant-volume CDSS tests.</p>
+
+<h2 id="examples">Example files</h2>
+<p>The three examples illustrate the unit options and three outcomes:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>File</th><th>Units</th><th>Cycles</th><th>Largest γ<sub>DA</sub></th><th>CBT, last cycle</th></tr></thead>
+    <tbody>
+        <tr><td><a href="Example_1.csv" download>Example_1.csv</a></td><td>min, psf, decimal strain</td><td>211</td><td>11.48%</td><td>0.13, clay-like</td></tr>
+        <tr><td><a href="Example_2.csv" download>Example_2.csv</a></td><td>s, kPa, % strain</td><td>119</td><td>8.21% (does not reach 9%)</td><td>0.84, with a caution</td></tr>
+        <tr><td><a href="Example_3.csv" download>Example_3.csv</a></td><td>s, kPa, % strain</td><td>86</td><td>11.95%</td><td>0.80, sand-like</td></tr>
+    </tbody>
+</table></div>
+<p>Example 1 has a second header row with the units, which the tool skips. Loading an example in the tool selects its units automatically.</p>
+
+<h2 id="ngl-files">NGL exports</h2>
+<p>CDSS data exported from the NGL database (columns <code>DSSS_TIME, DSSS_TAU, DSSS_SIGV, DSSS_YHV, DSSS_EPSV</code>, in s, kPa and %) already use this layout and can be uploaded as they are. You can also <a href="ngl.html">load tests from NGL directly</a>.</p>
+
+<h2 id="applicability">Which tests the models apply to</h2>
+<p>The models were calibrated on:</p>
+<ul>
+    <li><b>stress-controlled</b> cyclic direct simple shear tests,</li>
+    <li>on <b>intact fine-grained</b> specimens (fines content above 30%),</li>
+    <li>with <b>no initial static shear stress</b>,</li>
+    <li>carried to a double-amplitude shear strain of at least <b>9%</b>.</li>
+</ul>
+<p>The tool computes CBT for any test it can read, including strain-controlled tests, reconstituted specimens or tests with static shear, but the result is then an extrapolation and needs judgment. Tests that stop before γ<sub>DA</sub> = 9% get a <a href="results.html#caution">caution</a>.</p>

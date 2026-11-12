@@ -1,0 +1,55 @@
+<!-- title: Downloads -->
+<!-- description: The results and raw data downloads of the CBT Tool, and the columns of each CSV file. -->
+<h1>Downloads</h1>
+<p class="lead">The Export box downloads the per-cycle results, a summary of a batch of tests, or the test data as loaded. Every download is a .zip file with the CSV files and a disclaimer.</p>
+
+<h2 id="choose">Choosing the tests</h2>
+<!-- figure: export.png | The test selector in the Export box. Tests that do not reach γDA = 9% are marked. -->
+<p>The dropdown in the Export box lists the loaded tests; new tests are ticked as they are loaded. <b>All</b>, <b>None</b> and <b>Current</b> (only the test shown) are quick selections. <b>Results</b> and <b>Raw data</b> download the ticked tests.</p>
+
+<h2 id="results">Results</h2>
+<p>For one test, the .zip has <code>&lt;test&gt;_CBT_cycles.csv</code>. For several tests, it has one such file per test plus <code>CBT_summary.csv</code>. Both include <code>DISCLAIMER.txt</code>, which records the tool version, the date, the analysts used and any test that did not reach γ<sub>DA</sub> = 9%.</p>
+
+<h3 id="cycles-csv">Per-cycle file: <code>&lt;test&gt;_CBT_cycles.csv</code></h3>
+<p>Two comment lines (starting with <code>#</code>) give the tool version, the file, units, analysts, the γ<sub>DA</sub> = 9% cycle, how N<sub>s</sub> was found, any caution, and the data source (for NGL tests, the NGL identifiers and index properties). Then one row per cycle:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td><code>cycle</code></td><td>Cycle number N</td></tr>
+        <tr><td><code>gamma_SA</code>, <code>gamma_DA</code></td><td>Single- and double-amplitude shear strain of the cycle (%)</td></tr>
+        <tr><td><code>CSR_cycle</code></td><td>Largest |τ|/σ′<sub>v0</sub> in the cycle</td></tr>
+        <tr><td><code>ru</code></td><td>r<sub>u,max</sub>, the largest excess pore pressure ratio in the cycle</td></tr>
+        <tr><td><code>hull</code></td><td>Ratio<sub>hull</sub> = A<sub>loop</sub>/A<sub>hull</sub></td></tr>
+        <tr><td><code>hull_method</code></td><td>Integration rule used for A<sub>loop</sub>: Simpson's rule, or the trapezoid rule where Simpson's is unreliable (see <a href="method.html#hull">Ratio<sub>hull</sub></a>)</td></tr>
+        <tr><td><code>str_acc</code></td><td>Δγ<sub>cyc</sub>, increase in γ<sub>SA</sub> from the previous cycle (%)</td></tr>
+        <tr><td><code>dgamma</code></td><td>Ratio<sub>Δγ</sub> = Δγ<sub>cyc</sub>/γ<sub>FC</sub></td></tr>
+        <tr><td><code>kappa</code></td><td>κ<sub>γ</sub>, strain accumulation curvature (same value on every row)</td></tr>
+        <tr><td><code>CBT_median</code>, <code>CBT_p16</code>, <code>CBT_p84</code>, <code>CBT_mean</code></td><td>Combined CBT: median, 16th and 84th percentiles, mean</td></tr>
+        <tr><td><code>mu_T</code>, <code>sigma_T</code></td><td>Combined mean and standard deviation of logit(CBT)</td></tr>
+        <tr><td><code>sigma_within</code>, <code>sigma_between</code></td><td>Within- and between-analyst parts of <code>sigma_T</code></td></tr>
+        <tr><td><code>&lt;analyst&gt;_median</code>, <code>_mu_T</code>, <code>_sigma_T</code></td><td>The same for each selected analyst model</td></tr>
+    </tbody>
+</table></div>
+
+<h3 id="summary-csv">Summary file: <code>CBT_summary.csv</code></h3>
+<p>One row per test, for comparing many tests at once:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Columns</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td><code>file</code>, <code>source</code>, <code>status</code></td><td>Test name; <code>upload</code> or <code>NGL</code>; <code>ok</code>, a caution, or an error message</td></tr>
+        <tr><td><code>DSSS_ID</code> … <code>PI</code></td><td>For NGL tests: NGL identifiers, lab, lab program, sample, specimen, e<sub>0</sub>, w<sub>0</sub>, LL, PL and PI</td></tr>
+        <tr><td><code>time_unit</code>, <code>stress_unit</code></td><td>Units of the input file</td></tr>
+        <tr><td><code>n_cycles</code>, <code>sigma_v0</code>, <code>CSR_max</code>, <code>gamma_DA_max</code></td><td>Record summary (σ′<sub>v0</sub> in the file's stress unit)</td></tr>
+        <tr><td><code>reached_gamma_DA9</code>, <code>gamma_DA9_cycle</code></td><td>Whether γ<sub>DA</sub> = 9% was reached, and in which cycle</td></tr>
+        <tr><td><code>N_s</code>, <code>N_s_basis</code></td><td>N<sub>s</sub>, and whether it is from γ<sub>SA</sub> = 3% or the last cycle</td></tr>
+        <tr><td><code>last_…</code></td><td>Cycle, γ<sub>DA</sub>, metrics and combined CBT at the last cycle</td></tr>
+        <tr><td><code>g9_…</code></td><td>Metrics and combined CBT at the first cycle with γ<sub>DA</sub> ≥ 9%</td></tr>
+    </tbody>
+</table></div>
+
+<h2 id="raw">Raw data</h2>
+<p><b>Raw data</b> downloads the test data as loaded, one CSV file per test:</p>
+<ul>
+    <li><b>NGL tests</b> follow the layout of the NGL lab test viewer (<code>NGL_DirectSimpleShearTest_DSSS_ID_&lt;id&gt;.csv</code>), with the reference, lab, lab program, citation, specimen, sample, Atterberg limits and test metadata above the time series. Use it to cite the original source of the data.</li>
+    <li><b>Uploaded files</b> keep their own columns and units, under a short header with the file name and units.</li>
+</ul>

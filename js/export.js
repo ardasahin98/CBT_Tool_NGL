@@ -8,7 +8,7 @@
    Uses state, combine, fmt, U, esc and selectedTest from app.js. */
 "use strict";
 
-const TOOL_VERSION = "0.9.9";
+const TOOL_VERSION = "1.0.0";
 
 /* ------------------------------------------------------------------ */
 /*  Disclaimer (DISCLAIMER.txt in every zip) – edit the wording here   */

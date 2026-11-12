@@ -1,0 +1,18 @@
+<!-- title: Analyst models -->
+<!-- description: The ten analyst models behind the CBT estimate, their predictors, and how selecting analysts changes the combined result. -->
+<h1>Analyst models</h1>
+<p class="lead">CBT is not measured; it is a judgment. The tool reproduces the judgments of ten analysts with one model each and combines them, so the result carries both each analyst's uncertainty and their disagreement.</p>
+
+<h2 id="who">The analysts</h2>
+<p>Ten experienced analysts independently assigned a CBT between 0 (clay-like) and 1 (sand-like) to each of 195 CDSS tests from the NGL database. They are identified by their initials: AJ, AS, AWS, JPS, KJU, KOC, SJB, SLK, TME and VR. For each analyst, the logit of their CBT assignments was regressed on a subset of the test metrics (see <a href="method.html#models">Metrics and CBT models</a>). The metrics that ended up in each analyst's model are:</p>
+<!-- analysts -->
+<p>Every model uses Ratio<sub>hull</sub> and r<sub>u,max</sub>; some analysts' judgments are also explained by the strain accumulation curvature κ<sub>γ</sub> or by Ratio<sub>Δγ</sub>.</p>
+
+<h2 id="select">Selecting analysts</h2>
+<p>The <b>Analyst models</b> box lists the ten models, each with its colour in the plots. All are ticked by default. Untick an analyst to leave their model out of the combined CBT; <b>All</b> and <b>None</b> tick or untick every model. The results, plots and downloads update immediately, and the downloads record which analysts were used.</p>
+<p>The selected analysts are combined with <b>equal weights</b> (1 / number selected). With one analyst selected, the result is that analyst's model alone and has no between-analyst uncertainty.</p>
+
+<div class="callout">
+    <strong>Use all ten unless you have a reason not to</strong>
+    <p>The spread between analysts is a real part of the uncertainty in CBT. Leaving analysts out narrows the reported range without making the estimate more accurate.</p>
+</div>

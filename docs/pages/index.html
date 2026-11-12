@@ -1,0 +1,40 @@
+<!-- title: Overview -->
+<!-- description: Documentation for the Cyclic Behavior Type (CBT) Tool: compute test metrics and estimate the cyclic behavior type of fine-grained soils from cyclic direct simple shear tests. -->
+<h1>Cyclic Behavior Type (CBT) Tool</h1>
+<p class="lead">Estimate whether a fine-grained soil responds to cyclic loading more like a sand or more like a clay, from the record of a cyclic direct simple shear (CDSS) test.</p>
+
+<p>You give the tool the time history of one or more CDSS tests: shear stress, vertical effective stress and shear strain. For every loading cycle, it computes the test metrics that describe the shape of the stress–strain loops, the pore pressure build-up and the strain accumulation, and estimates the <b>cyclic behavior type (CBT)</b>, a number from 0 (clay-like) to 1 (sand-like), with its uncertainty.</p>
+
+<!-- figure: overview.png | The tool with Example 1 loaded: the input boxes at the top, CBT and metrics at the selected cycle on the left, and the test record on the right. -->
+
+<h2 id="why">Why CBT</h2>
+<p>Fine-grained soils span a continuum between two kinds of cyclic response. <b>Sand-like</b> soils build up excess pore pressure until the effective stress nearly vanishes, and their stress–strain loops become strongly pinched (banana-shaped) as the specimen softens and re-stiffens within each cycle. <b>Clay-like</b> soils typically accumulate strain more gradually, keep a meaningful effective stress, and their loops stay broad. Which of these a soil follows decides how its susceptibility to cyclic softening or liquefaction should be evaluated.</p>
+<p>Index properties such as the plasticity index separate the two only approximately. The CBT Tool instead reads the behavior from the laboratory test itself, using models fitted to the judgment of ten experienced analysts who classified 195 CDSS tests from the Next Generation Liquefaction (NGL) database.</p>
+
+<h2 id="what">What it computes</h2>
+<ul>
+    <li><b>Test metrics for every cycle:</b> the maximum excess pore pressure ratio r<sub>u,max</sub>, the loop-to-hull area ratio Ratio<sub>hull</sub>, the cyclic strain increment ratio Ratio<sub>Δγ</sub>, and, for the whole record, the strain accumulation curvature κ<sub>γ</sub>. See <a href="method.html">Metrics and CBT models</a>.</li>
+    <li><b>CBT for every cycle</b> from each of the ten analyst models, and the combined estimate: median, mean, 16th–84th and 5th–95th percentiles, and the within- and between-analyst parts of the uncertainty.</li>
+    <li><b>Plots</b> of the test record (stress–strain loops, stress path, strain and pore pressure histories, strain accumulation), of the metrics against cycle number, and of CBT against strain.</li>
+    <li><b>Downloads</b> of the per-cycle results and a summary table for a batch of tests, as CSV files.</li>
+</ul>
+
+<h2 id="ways">How to use it</h2>
+<div class="cards">
+    <a class="card" href="getting-started.html"><b>1. Try an example</b><span>Open the tool, load one of the three example tests, and read the result. About five minutes.</span></a>
+    <a class="card" href="input-files.html"><b>2. Your own tests</b><span>Fill in the CSV template (one file per test) and drop the files on the tool. Any time, stress and strain units.</span></a>
+    <a class="card" href="ngl.html"><b>3. From the NGL database</b><span>Sign in with your NGL account, filter the direct simple shear tests, and load them without downloading anything first.</span></a>
+</div>
+
+<div class="callout">
+    <strong>Your data stays on your computer</strong>
+    <p>All calculations run inside your web browser, with Python (NumPy and SciPy) compiled to WebAssembly by <a href="https://pyodide.org">Pyodide</a>. Uploaded files are not sent to any server. The first visit downloads about 30 MB, which the browser then keeps in its cache.</p>
+</div>
+
+<h2 id="scope">Where the models apply</h2>
+<p>The models were calibrated on <b>stress-controlled</b> CDSS tests on <b>intact fine-grained</b> specimens (fines content above 30%) with <b>no initial static shear stress</b>, carried to a double-amplitude shear strain γ<sub>DA</sub> of at least 9%. The tool reports CBT for any test, but tests that stop before γ<sub>DA</sub> = 9% are flagged with a caution, and use outside these conditions requires judgment. CBT estimates do not replace engineering judgment.</p>
+
+<div class="callout tip">
+    <strong>New here?</strong>
+    <p>Start with <a href="getting-started.html">Your first test</a>.</p>
+</div>

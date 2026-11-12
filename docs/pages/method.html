@@ -1,0 +1,51 @@
+<!-- title: Metrics and CBT models -->
+<!-- description: How the CBT Tool processes a CDSS record, defines the test metrics, and turns them into a CBT estimate with uncertainty. -->
+<h1>Metrics and CBT models</h1>
+<p class="lead">How a test record becomes a set of metrics for every cycle, and how the analyst models turn those metrics into a CBT distribution.</p>
+<p>The method is described in full in Sahin et al. (in preparation); see <a href="citing.html">Citation and license</a>. The code is in <code>py/cbt_core.py</code>, which runs in the browser.</p>
+
+<h2 id="processing">Processing and cycle detection</h2>
+<ol class="steps">
+    <li><b>Read and convert.</b> Strain given as a decimal is multiplied by 100. The excess pore pressure ratio is r<sub>u</sub> = (σ′<sub>v0</sub> − σ′<sub>v</sub>)/σ′<sub>v0</sub>, with σ′<sub>v0</sub> from the first row.</li>
+    <li><b>Resample.</b> Stress, strain and vertical stress histories are interpolated in time with a monotonic piecewise cubic Hermite spline (SciPy <code>PchipInterpolator</code>), at about 1,000 points per cycle, so every cycle is described at the same resolution whatever the recording rate.</li>
+    <li><b>Detect cycles.</b> A cycle starts where the shear stress crosses zero from negative to positive. Metrics are computed for every cycle.</li>
+</ol>
+
+<h2 id="metrics">Metrics</h2>
+
+<h3 id="ru">Maximum excess pore pressure ratio, r<sub>u,max</sub></h3>
+<p>The largest r<sub>u</sub> within the cycle. Sand-like soils approach r<sub>u</sub> = 1 (nearly zero effective stress); clay-like soils typically level off well below it.</p>
+
+<h3 id="hull">Hull ratio, Ratio<sub>hull</sub></h3>
+<p class="eq">Ratio<sub>hull</sub> = A<sub>loop</sub> / A<sub>hull</sub></p>
+<p>A<sub>loop</sub> is the area enclosed by the cycle's τ–γ loop and A<sub>hull</sub> the area of its convex hull (the orange outline in the loop plot). A broad, elliptical loop nearly fills its hull (Ratio<sub>hull</sub> close to 1); a pinched, banana-shaped loop, typical of sand-like behavior with dilation and phase transformation in each cycle, fills less of it. Ratio<sub>hull</sub> is limited to 1.</p>
+<p>A<sub>loop</sub> is integrated with Simpson's rule. If the Simpson ratio is negative, exceeds 1 while the trapezoid ratio does not, or differs from the trapezoid ratio by more than 0.02, the trapezoid rule is used for that cycle instead: Simpson's rule can fail when the smoothed strain has zero or near-zero steps, as in coarsely quantized records. The rule used is reported per cycle (<code>hull_method</code> in the results).</p>
+
+<h3 id="dgamma">Cyclic strain increment ratio, Ratio<sub>Δγ</sub></h3>
+<p class="eq">Ratio<sub>Δγ</sub> = Δγ<sub>cyc</sub> / γ<sub>FC</sub></p>
+<p>Δγ<sub>cyc</sub> is the increase in the maximum single-amplitude strain γ<sub>SA</sub> from the previous cycle, and γ<sub>FC</sub> is γ<sub>SA</sub> of the first cycle. Large values mean strain grows quickly from cycle to cycle, as in sand-like soils after liquefaction is triggered.</p>
+
+<h3 id="kappa">Strain accumulation curvature, κ<sub>γ</sub></h3>
+<p>One value for the whole record: the three-point curvature of the curve γ<sub>SA</sub>/γ<sub>s</sub> against N/N<sub>s</sub>, using points at 10%, 50% and 90% of the record, where γ<sub>s</sub> = 3% and N<sub>s</sub> is the (interpolated) number of cycles to reach γ<sub>SA</sub> = 3%. Positive values mean strain accumulation accelerates, typical of sand-like behavior; values near zero or negative mean steady or decelerating accumulation.</p>
+<p>If γ<sub>SA</sub> = 3% is not reached, N<sub>s</sub> is taken as the last cycle and strain is normalized by γ<sub>SA</sub> at the end of the last cycle, γ<sub>SA,last</sub>, so the curve ends at (1, 1); the three points are taken on that curve.</p>
+
+<h2 id="models">Analyst models</h2>
+<p>For each of the ten analysts, the logit of the CBT they assigned was regressed on a subset of the metrics with Bayesian inference (PyMC, 4 chains × 1,000 posterior samples):</p>
+<p class="eq">μ<sub>T</sub> = log[ CBT / (1 − CBT) ] = θ · X + σ̂ ε,&nbsp;&nbsp; ε ~ N(0, 1)</p>
+<p>where X holds the metrics used by that analyst's model (listed in <a href="analysts.html">Analyst models</a>) and σ̂ is the model standard deviation. The posterior samples are stored in <code>data/models.json</code>.</p>
+<p>For a new test and cycle, every posterior sample s of analyst i gives μ<sub>s</sub> = θ<sub>s</sub> · [1, X]. The analyst's predictive distribution of logit(CBT) is normal, with</p>
+<p class="eq">μ<sub>i</sub> = mean(μ<sub>s</sub>)&nbsp;&nbsp;&nbsp;&nbsp; σ<sub>i</sub>² = var(μ<sub>s</sub>) + mean(σ̂<sub>s</sub>²)</p>
+<p>The first term of σ<sub>i</sub>² is the uncertainty of the coefficients (σ coef.) and the second the model's own scatter (σ̂ model). Using every posterior sample keeps the correlation between the intercept and the coefficients.</p>
+
+<h2 id="combining">Combining analysts</h2>
+<p>The selected analysts are combined in logit space with equal weights w<sub>i</sub> (Brandenberg and Pretell, 2024):</p>
+<p class="eq">μ<sub>c</sub> = Σ w<sub>i</sub> μ<sub>i</sub>&nbsp;&nbsp;&nbsp;&nbsp; σ<sub>c</sub>² = Σ w<sub>i</sub> σ<sub>i</sub>² + Σ w<sub>i</sub> (μ<sub>i</sub> − μ<sub>c</sub>)²</p>
+<p>The first term is the within-analyst uncertainty and the second the between-analyst (epistemic) uncertainty. In the tool, μ<sub>c</sub> and σ<sub>c</sub> are shown as μ<sub>T</sub> and σ<sub>T</sub>. The result is transformed back to CBT with expit(x) = 1/(1 + e<sup>−x</sup>): the median is expit(μ<sub>T</sub>), the percentiles are expit(μ<sub>T</sub> + zσ<sub>T</sub>), and the mean is integrated with Gauss–Hermite quadrature.</p>
+
+<h2 id="calibration">Calibration data</h2>
+<p>The models were fitted to 195 CDSS tests from the NGL database: stress-controlled tests on intact fine-grained specimens (fines content above 30%) with no initial static shear stress, carried to γ<sub>DA</sub> ≥ 9%. The posterior means and standard deviations of the coefficients in <code>data/models.json</code> reproduce Table 2 of the paper. <code>tools/build_models.py</code> rebuilds the file from the Bayesian results.</p>
+
+<h2 id="references">References</h2>
+<ul>
+    <li>Sahin, A., Renugah, V. N. S., Ulmer, K. J., Jana, A., Brandenberg, S. J., Cetin, K. O., Evans, T. M., Kramer, S. L., Stuedlein, A. W., and Stewart, J. P. Cyclic behavior type assessment conditioned on laboratory test metrics for fine-grained soils. In preparation.</li>
+</ul>

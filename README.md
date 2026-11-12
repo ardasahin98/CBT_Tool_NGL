@@ -1,31 +1,76 @@
-# CBT Tool (web)
+# Cyclic Behavior Type (CBT) Tool
 
-Static website that computes CDSS test metrics and estimates cyclic behavior type (CBT)
-for every loading cycle, following Sahin et al. (in prep.). The Python metric code runs
-in the browser with Pyodide. There is no server, and uploaded files never leave the user's computer.
+Estimates the cyclic behavior type (CBT) of fine-grained soils, from 0 (clay-like) to 1
+(sand-like), from the record of a cyclic direct simple shear (CDSS) test. For every loading
+cycle the tool computes the test metrics r<sub>u,max</sub>, Ratio<sub>hull</sub>,
+Ratio<sub>Δγ</sub> and κ<sub>γ</sub>, and combines ten Bayesian analyst models into one CBT
+estimate with its uncertainty, following Sahin et al. (in preparation).
 
-This version can also load CDSS tests directly from the
-[Next Generation Liquefaction (NGL) database](https://nextgenerationliquefaction.org) through
-its REST API (see "NGL database connection" below).
+The tool is a static website. Its Python code runs in the browser with
+[Pyodide](https://pyodide.org), so there is no server and uploaded files never leave the
+user's computer. Tests can be uploaded as CSV files or loaded directly from the
+[Next Generation Liquefaction (NGL) database](https://nextgenerationliquefaction.org).
+
+- **Tool:** https://ardasahin98.github.io/CBT_Tool_NGL/
+- **Documentation** (written for engineers): https://ardasahin98.github.io/CBT_Tool_NGL/docs/
+  (source in [`docs/`](docs/))
+
+## Citation
+
+Cite version 1.0.0 as:
+
+> Sahin, A., Renugah, V. N. S., Ulmer, K. J., Jana, A., Brandenberg, S. J., Cetin, K. O.,
+> Evans, T. M., Kramer, S. L., Stuedlein, A. W., and Stewart, J. P. (2026). *Cyclic Behavior
+> Type (CBT) Tool* (version 1.0.0). DesignSafe-CI. DOI to be assigned.
+
+and the paper that describes the method:
+
+> Sahin, A., Renugah, V. N. S., Ulmer, K. J., Jana, A., Brandenberg, S. J., Cetin, K. O.,
+> Evans, T. M., Kramer, S. L., Stuedlein, A. W., and Stewart, J. P. Cyclic Behavior Type
+> Assessment Conditioned on Laboratory Test Metrics for Fine-grained Soils. In preparation.
+
+Machine-readable metadata are in [`CITATION.cff`](CITATION.cff) and
+[`codemeta.json`](codemeta.json). Data loaded from NGL remain subject to the NGL terms of
+use; cite their original sources and Brandenberg et al. (2020),
+https://doi.org/10.1177/8755293020902477.
+
+## License
+
+BSD 3-Clause; see [`LICENSE`](LICENSE). The libraries in `vendor/` keep their own licenses
+(Plotly.js: MIT; Pyodide: MPL-2.0; NumPy and SciPy: BSD 3-Clause).
+
+## Input
+
+One CSV file per CDSS test or test stage, with a header row and the columns time, shear
+stress, vertical effective stress, shear strain and (optionally) vertical strain. Time and
+stress units only change the labels; strain may be in % or decimal. The template is
+[`template/CBT_CDSS_Template.csv`](template/CBT_CDSS_Template.csv) and three examples are in
+[`examples/`](examples/). See [Preparing test files](https://ardasahin98.github.io/CBT_Tool_NGL/docs/input-files.html).
+
+The models were calibrated on stress-controlled CDSS tests on intact fine-grained specimens
+(fines content > 30%) with no initial static shear stress, carried to γ<sub>DA</sub> ≥ 9%.
 
 ## Folder layout
 
 | Path | Contents |
 |---|---|
 | `index.html`, `css/`, `js/app.js` | Tool page (Plotly charts) |
-| `about.html` | Input format, method, symbols, citation and license page |
-| `license.html` | Redirect to the End User License Agreement, which is the last section of `about.html` |
-| `js/export.js` | Downloads: results and raw data as .zip files with a disclaimer |
-| `js/ngl.js`, `js/config.js` | NGL sign-in, test-stage browser and loader; API address and optional proxy |
-| `serve.py` | Local web server with a relay to the NGL API (`/ngl/...`) |
-| `vercel.json` | Same `/ngl/...` relay when the site is hosted on Vercel |
-| `proxy/` | Optional Cloudflare Worker relay for the published site (only if NGL does not allow the site's origin) |
-| `js/worker.js` | Web worker that starts Pyodide and calls the Python code |
+| `about.html` | Input format, method, symbols, citation and license, as one page |
+| `license.html` | Redirect to the license section of `about.html` |
 | `py/cbt_core.py` | Metric and CBT code. The top half is copied verbatim from `ngl_def_v2.py` (`Data_Smooth` … `ru_calc`, `Ns_calculation`, `three_point_curvature`); the bottom half adds hull ratio, Ratio_Δγ, κγ, CBT prediction and the analyst combination |
+| `js/worker.js` | Web worker that starts Pyodide and calls the Python code |
 | `data/models.json` | Posterior samples (4 chains × 1,000) of the final model for each of the 10 analysts |
+| `js/export.js` | Downloads: results and raw data as .zip files with a disclaimer; `TOOL_VERSION` |
+| `js/ngl.js`, `js/config.js` | NGL sign-in, test-stage browser and loader; API address and optional proxy |
 | `template/`, `examples/` | Input template and three example tests (Example 1 in min, psf and decimal strain; Examples 2–3 in s, kPa and %) |
 | `vendor/` | Pyodide 0.29.3 (NumPy 2.2.5, SciPy 1.14.1) and Plotly 2.35.2, hosted locally so the site does not depend on a CDN |
+| `serve.py` | Local web server with a relay to the NGL API (`/ngl/...`) |
+| `vercel.json` | Same `/ngl/...` relay when the site is hosted on Vercel |
+| `proxy/` | Optional Cloudflare Worker relay (only if NGL does not allow the site's origin) |
 | `tools/build_models.py` | Rebuilds `models.json` from `../Bayesian_Results` |
+| `docs/`, `tools/build_docs.py` | Documentation pages and the script that builds the published site |
+| `.github/workflows/pages.yml` | Builds the site and publishes it to GitHub Pages on every push to `main` |
+| `CITATION.cff`, `codemeta.json` | Citation and software metadata |
 
 ## Run locally
 
@@ -37,16 +82,38 @@ python serve.py
 
 Then open http://localhost:8000. `serve.py` is a plain static server plus a relay to the NGL
 API, so "Load from NGL database" works locally regardless of NGL's CORS settings.
-(`python -m http.server 8000` still works for everything except the NGL connection,
-unless NGL allows the origin.)
+(`python -m http.server 8000` still works for everything except the NGL connection.)
 
-## Publish (GitHub Pages, free)
+## Documentation and GitHub Pages
 
-1. Create a GitHub repository (for example `cbt-tool`) and push the contents of this folder to it.
-2. In the repository, open Settings → Pages and choose "Deploy from a branch", branch `main`, folder `/ (root)`.
-3. The site will be at `https://<user>.github.io/cbt-tool/`. `.nojekyll` is already included.
+The documentation pages are HTML fragments in `docs/pages/`, wrapped in `docs/_layout.html`
+by `tools/build_docs.py` (Python standard library only), which builds the published site into
+`_site/`: the tool at the root and the documentation in `_site/docs/`. The script also checks
+every internal link, and fills the analyst predictor table from `data/models.json` and the
+version from `js/export.js`.
 
-Any static host works too: Netlify, Cloudflare Pages, or a UCLA web server.
+```
+python tools/build_docs.py           # build _site/
+python tools/build_docs.py --serve   # build, then serve at http://localhost:8081/docs/
+```
+
+Pushing to `main` runs `.github/workflows/pages.yml`, which builds `_site/` and publishes it.
+One-time setup: Settings → Pages → Build and deployment → Source: **GitHub Actions**. The
+screenshots in `docs/images/` are taken from the running tool with the examples loaded;
+retake them after changing the interface.
+
+Any static host works for the tool alone (Netlify, Cloudflare Pages, a UCLA or NGL web
+server): copy the repository without `.git`, `docs/`, `tools/` and `_site/`.
+
+## Releasing a version
+
+1. Set the version in `js/export.js` (`TOOL_VERSION`), the footers of `index.html` and
+   `about.html`, `CITATION.cff` and `codemeta.json` (with the release date).
+2. Update the `?v=` cache-busting suffixes in `index.html` for the files that changed.
+3. Commit, tag (`git tag v1.0.0`), push, and create a GitHub release from the tag.
+4. Publish the release on DesignSafe, then add the DOI to `CITATION.cff` (`doi:` and
+   `identifiers:`), `codemeta.json` (`identifier`), this README, `about.html#cite` and
+   `docs/pages/citing.html`.
 
 ## Implementation notes
 

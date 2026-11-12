@@ -1,0 +1,45 @@
+<!-- title: Loading tests from NGL -->
+<!-- description: Sign in to the Next Generation Liquefaction database, find direct simple shear test stages and load them into the CBT Tool. -->
+<h1>Loading tests from the NGL database</h1>
+<p class="lead">The tool can read cyclic direct simple shear tests straight from the <a href="https://nextgenerationliquefaction.org">Next Generation Liquefaction (NGL)</a> database through its web interface (API), so you don't have to export and upload them.</p>
+
+<h2 id="signin">Sign in</h2>
+<p>Click <b>Load from NGL database</b> in box 2 of the tool. A window opens; sign in with the <b>email address</b> and password of your NGL account. (No account? Register at <a href="https://nextgenerationliquefaction.org">nextgenerationliquefaction.org</a>.)</p>
+<ul>
+    <li>Your email and password are sent once, only to NGL, to obtain an <b>access token valid for 2 hours</b>. The password is not stored.</li>
+    <li>The token is kept only in this browser tab (session storage) and is forgotten when the tab is closed. The time left is shown next to the button.</li>
+    <li>After 2 hours you are asked to sign in again. Tests already loaded stay in the tool.</li>
+</ul>
+
+<h2 id="browse">Find the tests</h2>
+<p>After signing in, the window lists the direct simple shear test stages in NGL, with the same columns as the NGL lab test viewer:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Column</th><th>From NGL</th></tr></thead>
+    <tbody>
+        <tr><td>Lab, Lab Program, Citation ID</td><td>The laboratory, the lab program and its citation</td></tr>
+        <tr><td>Sample, Specimen</td><td>Sample and specimen names</td></tr>
+        <tr><td>e0, w0</td><td>Initial void ratio and water content of the specimen (<code>DSSG_E0</code>, <code>DSSG_W0</code>)</td></tr>
+        <tr><td>LL, PL</td><td>Liquid and plastic limits of the specimen (<code>PLAS_LL</code>, <code>PLAS_PL</code>)</td></tr>
+        <tr><td>Stage, Loading Type, Drainage</td><td>Stage number; consolidation, monotonic or cyclic loading (<code>DSSS_TY</code>); drained or undrained (<code>DSSS_DR</code>)</td></tr>
+    </tbody>
+</table></div>
+<ul>
+    <li><b>Search boxes</b> under each column heading filter the list. Click a heading to sort by it.</li>
+    <li><b>Add column</b> adds any other NGL field to the table.</li>
+    <li><b>Cyclic stages only</b> (on by default) hides consolidation and monotonic stages.</li>
+    <li><b>Include unreviewed data</b> (on by default) also lists data submitted to NGL but not yet reviewed.</li>
+    <li><b>Admin access</b> is for NGL administrators only: it also lists data never submitted for review. Other accounts get an error. Do not redistribute such data without the data owner's permission.</li>
+</ul>
+
+<h2 id="load">Load</h2>
+<p>Tick the stages you want and click <b>Load selected into the tool</b>. Only the time series of those stages are downloaded. Each one is converted to the template layout (s, kPa, % strain) and added to the file list just like an uploaded file, with its NGL identifiers, lab, sample, specimen and index properties shown in the test summary and included in the downloads.</p>
+<p>Stages that are already loaded are skipped. A stage without time-series data in NGL is reported and left out.</p>
+
+<h2 id="terms">Terms of use</h2>
+<p>Data loaded from NGL remain subject to the NGL database's terms of use. Please cite the original sources of the data (listed in the NGL Citations table, and in the raw data download) and the NGL database:</p>
+<p>Brandenberg, S. J., Zimmaro, P., Stewart, J. P., Kwak, D. Y., Franke, K. W., Moss, R. E. S., Cetin, K. O., Can, G., Ilgac, M., Stamatakos, J., Weaver, T., and Kramer, S. L. (2020). Next-generation liquefaction database. <i>Earthquake Spectra</i>, 36(2), 939–959. <a href="https://doi.org/10.1177/8755293020902477">https://doi.org/10.1177/8755293020902477</a></p>
+
+<div class="callout warn">
+    <strong>"The browser could not reach the NGL API"</strong>
+    <p>Browsers only let a page call another site's API if that site allows it (CORS). Where the tool is hosted decides how it reaches NGL; see <a href="hosting.html#ngl-relay">Running and hosting</a>. Uploading CSV files works everywhere.</p>
+</div>

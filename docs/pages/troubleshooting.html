@@ -1,0 +1,50 @@
+<!-- title: Troubleshooting and FAQ -->
+<!-- description: Fixes for common error messages in the CBT Tool, and answers to common questions. -->
+<h1>Troubleshooting and FAQ</h1>
+<p class="lead">Common error messages and what to do about them, and answers to questions about the results.</p>
+
+<h2 id="errors">Error messages</h2>
+<p>A test that could not be computed shows a red <i>error</i> chip in the file list; hover over it, or click the test, to see the message.</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Message</th><th>What it means and how to fix it</th></tr></thead>
+    <tbody>
+        <tr><td>The file is empty.</td><td>The file has a header and no data rows (comment lines starting with <code>#</code> don't count).</td></tr>
+        <tr><td>Fewer than 50 valid data rows were found…</td><td>Fewer than 50 rows have numbers in all of the first four columns. Check the column order (time, shear stress, vertical effective stress, shear strain), that the file uses commas between columns and points for decimals, and that it is not saved with semicolons by a European-locale spreadsheet.</td></tr>
+        <tr><td>Time must be non-decreasing.</td><td>Time goes backwards somewhere, for example where two test stages were pasted together. Keep only the cyclic loading stage, or make time continuous.</td></tr>
+        <tr><td>Fewer than two loading cycles were detected.</td><td>The shear stress does not cross zero from negative to positive at least twice. Check that the shear stress column is signed and in column 2.</td></tr>
+        <tr><td>Strain accumulation cannot be normalized at the last cycle.</td><td>The single-amplitude strain at the end of the record is zero, so κ<sub>γ</sub> can't be computed. Check the strain column.</td></tr>
+        <tr><td>Sign-in failed. Check your NGL email and password.</td><td>Use the <b>email address</b> of your NGL account, not the username.</td></tr>
+        <tr><td>The browser could not reach the NGL API from this page…</td><td>The page is hosted where it can't call NGL. See <a href="hosting.html#ngl-relay">Connecting to the NGL API</a>. Uploading CSV files still works.</td></tr>
+        <tr><td>Admin access was refused…</td><td>Untick <b>Admin access</b>; it is only for NGL administrators.</td></tr>
+        <tr><td>NGL has no time-series data for this stage</td><td>The stage exists in NGL but its data has not been uploaded. It is skipped.</td></tr>
+    </tbody>
+</table></div>
+
+<h2 id="slow">The tool is slow to start</h2>
+<p>The first visit downloads about 30 MB: Python, NumPy and SciPy compiled for the browser. Later visits load them from the browser's cache. If the progress bar stalls, reload the page; on a restricted network, check that the site's <code>vendor/</code> files are not blocked.</p>
+
+<h2 id="faq">Questions</h2>
+
+<h3 id="which-cycle">Should I read CBT at the last cycle or at γ<sub>DA</sub> = 9%?</h3>
+<p>The models were calibrated on tests carried to at least γ<sub>DA</sub> = 9%, by which hysteretic behavior has usually developed. For a test that goes well beyond 9%, compare the two; the CBT tab shows how the estimate develops with strain. See <a href="results.html#cycle">Which cycle to use</a>.</p>
+
+<h3 id="below-9">My test stops before γ<sub>DA</sub> = 9%. Can I use the result?</h3>
+<p>The tool reports it with a caution. The soil's ultimate hysteretic behavior and susceptibility may not have developed by the end of the test, so treat the result as provisional and use judgment.</p>
+
+<h3 id="wide">Why is the 16–84% range so wide?</h3>
+<p>Because it includes the scatter of each analyst's own judgments and the disagreement between the ten analysts. A CBT near 0.5 with a wide range means the test does not clearly look like either kind of behavior. See <a href="results.html#cbt">Combined CBT</a>.</p>
+
+<h3 id="units-matter">Do the units change the result?</h3>
+<p>Time and stress units do not: every metric uses ratios. The strain unit does: make sure decimal strain (0.03) is marked as <b>decimal</b>, or the tool reads it as 0.03% and the strain thresholds are never reached.</p>
+
+<h3 id="hull-one">Why is Ratio<sub>hull</sub> exactly 1.00 in some cycles?</h3>
+<p>Ratio<sub>hull</sub> is limited to 1. A value of 1 usually comes from a cycle that is cut short (often the last one, when the record stops part-way through a cycle) or from a very noisy loop. Look at that cycle in the loop plot, and read CBT at a neighbouring complete cycle if needed.</p>
+
+<h3 id="other-tests">Can I use strain-controlled tests, triaxial tests or sands?</h3>
+<p>The tool will compute metrics and CBT for any record in the template layout, but the models were fitted to stress-controlled CDSS tests on intact fine-grained soils without static shear. Anything else is an extrapolation.</p>
+
+<h3 id="privacy">Is my data uploaded anywhere?</h3>
+<p>No. Files are read and processed in your browser. When you sign in to NGL, your email and password go only to NGL (directly or through the site's relay, which doesn't store them) to obtain the 2-hour token.</p>
+
+<h3 id="contact">Where do I report a problem?</h3>
+<p>Open an issue on <a href="https://github.com/ardasahin98/CBT_Tool_NGL/issues">GitHub</a>, or email Arda Sahin (UCLA Civil and Environmental Engineering) at <a href="mailto:arda120222@g.ucla.edu">arda120222@g.ucla.edu</a>.</p>
