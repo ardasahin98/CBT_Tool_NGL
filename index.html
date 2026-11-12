@@ -193,17 +193,6 @@
         <div class="row small" style="margin-bottom:8px">
           <label><input type="checkbox" id="showAnalystLines" checked> Show individual analysts</label>
           <label><input type="checkbox" id="logitSpace"> Distribution in logit space</label>
-          <label title="Fit two straight lines to the combined CBT versus γDA and check whether CBT has stopped changing at the end of the test"><input type="checkbox" id="stabOn"> Stabilization check</label>
-        </div>
-        <div class="stab" id="stabPanel" hidden>
-          <div class="stab-ctrl small">
-            <label title="Drift tolerance: a line keeps adding cycles while its slope stays within X of its starting slope (CBT per 1% γDA). Smaller X gives shorter, straighter lines.">Drift tolerance X
-              <input type="number" id="stabX" min="0.0005" max="0.05" step="0.0005" value="0.005"></label>
-            <button class="btn sm" id="stabReset" type="button">Default (0.005)</button>
-            <span class="muted">Stabilized if the slope of line 2 is between 0 and 0.02 per 1% γ<sub>DA</sub> and line 2 spans at least 0.5% γ<sub>DA</sub>. Line 2 never ends with a negative slope: it takes more cycles until the slope is ≥ 0.</span>
-          </div>
-          <div id="stabMsg"></div>
-          <div class="stab-disc"><b>Disclaimer:</b> the stabilization check is a generic algorithm. It fits two straight lines to the combined CBT and can misclassify a test (for example, a long, slowly creeping tail can be labelled stabilized, or a test that is just levelling off can be labelled still changing). The result must be evaluated with engineering judgement.</div>
         </div>
         <div class="grid2">
           <div class="plot" id="cEvol"></div>
