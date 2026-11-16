@@ -2,10 +2,13 @@
    Sign in with an NGL account (the API issues a 2-hour token), browse the
    direct simple shear test stages, filter them, and load the selected stages
    straight into the tool. The password is sent only to obtain the token and is
-   never stored; the token is kept in sessionStorage (this browser tab only). */
+   never stored; the token is kept in sessionStorage (this browser tab only).
+   Inside the NGL website (Interpretation Tools page) the tool is embedded in a
+   frame and receives the token of the user already logged in to NGL, so no
+   separate sign-in is needed there (see "Embedded in the NGL website" below). */
 "use strict";
 (() => {
-const CFG = Object.assign({ base: "https://nextgenerationliquefaction.org", proxy: "" }, window.NGL_CONFIG || {});
+const CFG = Object.assign({ base: "https://nextgenerationliquefaction.org", proxy: "", embedOrigins: [] }, window.NGL_CONFIG || {});
 const TOKEN_LIFE = 2 * 3600 * 1000;
 const STORE = "cbt_ngl_session_v1";
 const PAGE = 5000, IN_CHUNK = 150, LOAD_CHUNK = 10, MAX_ROWS_DRAWN = 3000;
@@ -34,13 +37,16 @@ const S = {
   token: null, exp: 0, user: "", base: null,
   rows: null, typeKey: null, colFilter: {}, cyclicKnown: false, rawKeys: [], extraCols: [], warnings: [],
   sel: new Set(), sort: { k: "prog", dir: 1 }, unrev: true, admin: false, busy: false,
+  embedded: false,   // true once the NGL website (parent page) has passed its session
 };
+// Running in a frame of a page on one of CFG.embedOrigins (checked when that page answers).
+const IN_FRAME = window.parent !== window;
 
 /* ------------------------------------------------------------------ */
 /*  Session                                                            */
 /* ------------------------------------------------------------------ */
 function saveSession() {
-  try { sessionStorage.setItem(STORE, JSON.stringify({ token: S.token, exp: S.exp, user: S.user, base: S.base })); } catch (e) { /* storage unavailable */ }
+  try { sessionStorage.setItem(STORE, JSON.stringify({ token: S.token, exp: S.exp, user: S.user, base: S.base, embedded: S.embedded })); } catch (e) { /* storage unavailable */ }
 }
 function loadSession() {
   try {
@@ -101,6 +107,56 @@ async function signIn(user, pass) {
     throw new Error("Sign-in failed: " + errMsg(j, t, r.status));
   }
   throw new Error(CORS_HELP + " Tried: " + tried.join("; ") + ".");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Embedded in the NGL website                                        */
+/* ------------------------------------------------------------------ */
+// The NGL page that embeds the tool answers a "cbt-ngl-request" message with an
+// "ngl-session" message holding an API token for the user logged in to NGL (the
+// same 2-hour token /users/api-token gives). Only messages from the parent window
+// on one of CFG.embedOrigins are accepted.
+let embedWait = null;   // pending request: {resolve, reject, timer}
+function askParent() {
+  if (!IN_FRAME) return Promise.reject(new Error("not embedded"));
+  if (embedWait) return embedWait.promise;
+  let resolve, reject;
+  const promise = new Promise((a, b) => { resolve = a; reject = b; });
+  const timer = setTimeout(() => { embedWait = null; reject(new Error("The NGL page did not answer.")); }, 15000);
+  embedWait = { promise, resolve, reject, timer };
+  window.parent.postMessage({ type: "cbt-ngl-request" }, "*");   // carries nothing secret
+  return promise;
+}
+async function adoptToken(token, user) {
+  // Pick the address the API answers on with this token: the /ngl relay on this
+  // site (Vercel, serve.py), then NGL directly, then the configured proxy.
+  const tried = [];
+  for (const { base, name } of candidates()) {
+    try {
+      const r = await fetch(base + EP.labs + "?limit=1", { headers: { Accept: "application/json", Authorization: "Bearer " + token }, cache: "no-store", credentials: "omit" });
+      const { j } = await readJSON(r);
+      if (r.ok && Array.isArray(j)) {
+        S.token = token; S.exp = tokenExpiry(token); S.user = user; S.base = base; S.rows = null; S.embedded = true;
+        saveSession(); updateSessionText();
+        return;
+      }
+      tried.push(`${name}: HTTP ${r.status}`);
+    } catch (e) { tried.push(`${name}: blocked by the browser (CORS) or unreachable`); }
+  }
+  throw new Error(CORS_HELP + " Tried: " + tried.join("; ") + ".");
+}
+window.addEventListener("message", (e) => {
+  if (e.source !== window.parent || !CFG.embedOrigins.includes(e.origin)) return;
+  const d = e.data || {};
+  if (d.type !== "ngl-session" || !embedWait) return;
+  const w = embedWait; embedWait = null; clearTimeout(w.timer);
+  if (!d.token) { w.reject(new Error(d.message || "The NGL website did not give a session.")); return; }
+  adoptToken(String(d.token), String(d.user || "")).then(w.resolve, w.reject);
+});
+// Signs in with the NGL website's session when embedded there; false when not embedded.
+async function embeddedSignIn() {
+  if (!IN_FRAME) return false;
+  try { await askParent(); S.embedFailed = false; return true; } catch (e) { S.embedFailed = true; updateSessionText(); return false; }
 }
 
 /* ------------------------------------------------------------------ */
@@ -406,9 +462,16 @@ async function refresh() {
   } finally { busy(false); }
 }
 function expired(msg) {
-  const user = S.user;
-  clearSession(); S.user = user;
+  const user = S.user, wasEmbedded = S.embedded;
+  clearSession(); S.user = user; S.embedded = false;
   updateSessionText();
+  if (wasEmbedded) {   // ask the NGL page for a fresh token instead of a sign-in
+    embeddedSignIn().then(ok => {
+      if (!$("nglDlg").open) return;
+      ok ? showBrowse() : showLogin(msg || "Your NGL session has ended. Please sign in again.");
+    });
+    return;
+  }
   if ($("nglDlg").open) showLogin(msg || "Your 2-hour NGL session has ended. Please sign in again.");
 }
 function fmtLeft(ms) {
@@ -418,10 +481,15 @@ function fmtLeft(ms) {
 function updateSessionText() {
   const on = signedIn();
   if (!on && S.token) { expired(); return; }
+  if (on && S.embedded) {   // session comes from the NGL website: no sign-out here
+    $("nglSession").innerHTML = `Signed in through the NGL website as <b>${esc(S.user)}</b>`;
+    $("nglLine").innerHTML = `NGL: signed in through the NGL website as <b>${esc(S.user)}</b>`;
+    return;
+  }
   $("nglSession").innerHTML = on ? `Signed in as <b>${esc(S.user)}</b> · token valid ${fmtLeft(S.exp - Date.now())} · <a href="#" data-ngl-out>Sign out</a>` : "";
   $("nglLine").innerHTML = on
     ? `NGL: <b>${esc(S.user)}</b> · ${fmtLeft(S.exp - Date.now())} left · <a href="#" data-ngl-out>Sign out</a>`
-    : "Sign in with your NGL account to load CDSS tests.";
+    : (IN_FRAME && !S.embedFailed ? "Connecting to your NGL session…" : "Sign in with your NGL account to load CDSS tests.");
 }
 document.addEventListener("click", (e) => {
   if (e.target.closest("[data-ngl-out]")) {
@@ -487,7 +555,16 @@ function init() {
   updateSessionText();
   setInterval(updateSessionText, 30000);
   const dlg = $("nglDlg");
-  $("nglOpen").onclick = () => { dlg.showModal(); signedIn() ? showBrowse() : showLogin(); };
+  $("nglOpen").onclick = async () => {
+    dlg.showModal();
+    if (signedIn()) { showBrowse(); return; }
+    if (IN_FRAME && await embeddedSignIn()) { showBrowse(); return; }
+    showLogin();
+  };
+  // Inside the NGL website: take its session right away (no sign-in form)
+  if (IN_FRAME && !signedIn()) {
+    embeddedSignIn();
+  }
   $("nglClose").onclick = () => dlg.close();
   dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
   $("nglLogin").addEventListener("submit", async (e) => {
