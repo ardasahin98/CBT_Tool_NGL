@@ -11,8 +11,8 @@ The tool is a static website. Its Python code runs in the browser with
 user's computer. Tests can be uploaded as CSV files or loaded directly from the
 [Next Generation Liquefaction (NGL) database](https://nextgenerationliquefaction.org).
 
-- **Tool:** https://ardasahin98.github.io/CBT_Tool_NGL/
-- **Documentation** (written for engineers): https://ardasahin98.github.io/CBT_Tool_NGL/docs/
+- **Tool:** https://cbttoolngl.vercel.app/
+- **Documentation** (written for engineers): https://cbttoolngl.vercel.app/docs/
   (source in [`docs/`](docs/))
 
 ## Citation
@@ -45,7 +45,7 @@ One CSV file per CDSS test or test stage, with a header row and the columns time
 stress, vertical effective stress, shear strain and (optionally) vertical strain. Time and
 stress units only change the labels; strain may be in % or decimal. The template is
 [`template/CBT_CDSS_Template.csv`](template/CBT_CDSS_Template.csv) and three examples are in
-[`examples/`](examples/). See [Preparing test files](https://ardasahin98.github.io/CBT_Tool_NGL/docs/input-files.html).
+[`examples/`](examples/). See [Preparing test files](https://cbttoolngl.vercel.app/docs/input-files.html).
 
 The models were calibrated on stress-controlled CDSS tests on intact fine-grained specimens
 (fines content > 30%) with no initial static shear stress, carried to γ<sub>DA</sub> ≥ 9%.
@@ -97,7 +97,8 @@ python tools/build_docs.py           # build _site/
 python tools/build_docs.py --serve   # build, then serve at http://localhost:8081/docs/
 ```
 
-Pushing to `main` runs `.github/workflows/pages.yml`, which builds `_site/` and publishes it.
+On Vercel, `vercel.json` runs the same build (`buildCommand`) and serves `_site/` (`outputDirectory`), so the tool and the
+documentation are published together on every push. Pushing to `main` also runs `.github/workflows/pages.yml`, which builds `_site/` and publishes it to GitHub Pages (if Pages is turned on).
 One-time setup: Settings → Pages → Build and deployment → Source: **GitHub Actions**. The
 screenshots in `docs/images/` are taken from the running tool with the examples loaded;
 retake them after changing the interface.
@@ -191,3 +192,8 @@ Notes
 
   The tool tries, in order: the `/ngl` relay on the same address, NGL directly, and the
   configured proxy. If all fail, the error message lists what happened with each.
+- **Inside the NGL website.** NGL administrators open the tool from Interpretation Tools; that
+  NGL page shows the Vercel site in a frame and passes the logged-in user's API token to it
+  (`cbt-ngl-request` / `ngl-session` messages; accepted only from `embedOrigins` in
+  `js/config.js`), so no separate sign-in is needed there. Opened by itself, the tool asks for
+  a normal sign-in.

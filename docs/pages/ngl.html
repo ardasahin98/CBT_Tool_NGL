@@ -10,6 +10,7 @@
     <li>The token is kept only in this browser tab (session storage) and is forgotten when the tab is closed. The time left is shown next to the button.</li>
     <li>After 2 hours you are asked to sign in again. Tests already loaded stay in the tool.</li>
 </ul>
+<p><b>Inside the NGL website</b> (the CBT Tool under <b>Interpretation Tools</b>), there is no sign-in: the tool uses the account you are logged in to NGL with. The window says "Signed in through the NGL website", and a new token is fetched from NGL when the old one runs out.</p>
 
 <h2 id="browse">Find the tests</h2>
 <p>After signing in, the window lists the direct simple shear test stages in NGL, with the same columns as the NGL lab test viewer:</p>
@@ -41,5 +42,5 @@
 
 <div class="callout warn">
     <strong>"The browser could not reach the NGL API"</strong>
-    <p>Browsers only let a page call another site's API if that site allows it (CORS). Where the tool is hosted decides how it reaches NGL; see <a href="hosting.html#ngl-relay">Running and hosting</a>. Uploading CSV files works everywhere.</p>
+    <p>On <a href="https://cbttoolngl.vercel.app/">cbttoolngl.vercel.app</a> and inside the NGL website, the tool reaches NGL through a relay on its own address, so this usually means the NGL website is down or slow: try again later. If it keeps happening, the relay may be missing from the deployment. A copy of the tool hosted somewhere else needs its own way to reach NGL; see <a href="hosting.html#ngl-relay">Running and hosting</a>. Uploading CSV files works everywhere.</p>
 </div>

@@ -26,9 +26,10 @@ const EP = {
   plas: "/plasticity-tests/api-index",
   cits: "/citations/api-index",
 };
-const CORS_HELP = "The browser could not reach the NGL API from this page. This usually means NGL does not yet " +
-  "allow requests from this website (CORS). On Vercel, make sure vercel.json is deployed; locally, run serve.py; " +
-  "elsewhere, set a proxy in js/config.js (see README, \"NGL database connection\").";
+const CORS_HELP = "The browser could not reach the NGL API from this page. On cbttoolngl.vercel.app and inside the NGL " +
+  "website this usually means the NGL website is down or slow: try again later. If it keeps happening, check that " +
+  "vercel.json (the /ngl relay) is deployed. A copy hosted elsewhere needs a relay: run serve.py locally, or set a " +
+  "proxy in js/config.js (see the documentation, \"Running and hosting\").";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

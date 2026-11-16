@@ -14,7 +14,7 @@
         <tr><td>Fewer than two loading cycles were detected.</td><td>The shear stress does not cross zero from negative to positive at least twice. Check that the shear stress column is signed and in column 2.</td></tr>
         <tr><td>Strain accumulation cannot be normalized at the last cycle.</td><td>The single-amplitude strain at the end of the record is zero, so κ<sub>γ</sub> can't be computed. Check the strain column.</td></tr>
         <tr><td>Sign-in failed. Check your NGL email and password.</td><td>Use the <b>email address</b> of your NGL account, not the username.</td></tr>
-        <tr><td>The browser could not reach the NGL API from this page…</td><td>The page is hosted where it can't call NGL. See <a href="hosting.html#ngl-relay">Connecting to the NGL API</a>. Uploading CSV files still works.</td></tr>
+        <tr><td>The browser could not reach the NGL API from this page…</td><td>On <a href="https://cbttoolngl.vercel.app/">cbttoolngl.vercel.app</a> or inside the NGL website, NGL is probably down or slow: try again later. A copy hosted elsewhere may have no way to reach NGL; see <a href="hosting.html#ngl-relay">Connecting to the NGL API</a>. Uploading CSV files still works.</td></tr>
         <tr><td>Admin access was refused…</td><td>Untick <b>Admin access</b>; it is only for NGL administrators.</td></tr>
         <tr><td>NGL has no time-series data for this stage</td><td>The stage exists in NGL but its data has not been uploaded. It is skipped.</td></tr>
     </tbody>
@@ -44,7 +44,7 @@
 <p>The tool will compute metrics and CBT for any record in the template layout, but the models were fitted to stress-controlled CDSS tests on intact fine-grained soils without static shear. Anything else is an extrapolation.</p>
 
 <h3 id="privacy">Is my data uploaded anywhere?</h3>
-<p>No. Files are read and processed in your browser. When you sign in to NGL, your email and password go only to NGL (directly or through the site's relay, which doesn't store them) to obtain the 2-hour token.</p>
+<p>No. Files are read and processed in your browser. When you sign in to NGL, your email and password go only to NGL (directly or through the site's relay, which doesn't store them) to obtain the 2-hour token. Inside the NGL website no password is entered; the NGL page gives the tool a token for your NGL login.</p>
 
 <h3 id="contact">Where do I report a problem?</h3>
 <p>Open an issue on <a href="https://github.com/ardasahin98/CBT_Tool_NGL/issues">GitHub</a>, or email Arda Sahin (UCLA Civil and Environmental Engineering) at <a href="mailto:arda120222@g.ucla.edu">arda120222@g.ucla.edu</a>.</p>

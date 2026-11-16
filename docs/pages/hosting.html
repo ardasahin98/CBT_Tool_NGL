@@ -33,20 +33,30 @@
 <p>The site sets no cookies and uses no analytics. Pyodide's files are large (about 30 MB in total); the server should send <code>.wasm</code> files as <code>application/wasm</code> (most do) so the browser can compile them while they download.</p>
 
 <h3 id="ngl-relay">Connecting to the NGL API</h3>
-<p>Browsers block a page from calling another site's API unless that site allows it (CORS). The tool tries, in order: a relay at <code>/ngl/…</code> on its own address, NGL directly, and the relay set in <code>js/config.js</code>. If all fail, the error lists what happened with each. Depending on where the tool is hosted:</p>
+<p>Browsers block a page from calling another site's API unless that site allows it (CORS), and NGL does not allow other sites. The tool tries, in order: a relay at <code>/ngl/…</code> on its own address, NGL directly, and the relay set in <code>js/config.js</code>. If all fail, the error lists what happened with each. Depending on where the tool is hosted:</p>
 <ul>
-    <li><b>On the NGL website itself</b> (same origin): no relay is needed.</li>
-    <li><b>Locally:</b> <code>python serve.py</code> provides the <code>/ngl/…</code> relay.</li>
-    <li><b>Vercel:</b> <code>vercel.json</code> (at the repository root) rewrites <code>/ngl/users/api-token</code> and <code>/ngl/&lt;table&gt;/api-index</code> to the NGL API server-side.</li>
+    <li><b>Vercel</b> (the published tool, <a href="https://cbttoolngl.vercel.app/">cbttoolngl.vercel.app</a>): <code>vercel.json</code> (at the repository root) rewrites <code>/ngl/users/api-token</code> and <code>/ngl/&lt;table&gt;/api-index</code> to the NGL API server-side.</li>
+    <li><b>Locally:</b> <code>python serve.py</code> provides the <code>/ngl/…</code> relay. Set <code>NGL_URL</code> to relay to another NGL server, e.g. a local copy of the NGL website: <code>NGL_URL=http://localhost:8765 python serve.py</code>.</li>
     <li><b>Other static hosts</b> (GitHub Pages, a university server): ask the NGL administrators to allow the site's origin on <code>/users/api-token</code> and <code>*/api-index</code>, or deploy the Cloudflare Worker in <code>proxy/</code> and set its URL as <code>proxy</code> in <code>js/config.js</code> (see <code>proxy/README.md</code>).</li>
 </ul>
 <p>The relays forward only the token and API-index endpoints and do not log or store credentials.</p>
 
-<h2 id="pages">GitHub Pages and this documentation</h2>
+<h3 id="ngl-embed">Inside the NGL website</h3>
+<p>NGL administrators open the tool from <b>Interpretation Tools → Cyclic Behavior Type (CBT) Tool</b>. That NGL page shows the Vercel site in a frame, so the tool still reaches NGL through the Vercel relay, and every push that Vercel deploys shows up there too. The address is set in the NGL website's <code>InterpretationToolsController</code> (<code>InterpretationTools.cbtUrl</code> in <code>config/app_local.php</code> overrides it).</p>
+<p>The NGL page passes the logged-in user's 2-hour API token to the tool, so no separate sign-in is needed:</p>
+<ol class="steps">
+    <li>The tool, when it runs in a frame, asks the page that contains it with a <code>cbt-ngl-request</code> message.</li>
+    <li>The NGL page gets a token for the logged-in user from <code>/interpretation-tools/token</code> (Admin mode only) and answers with an <code>ngl-session</code> message sent only to the tool's own address.</li>
+    <li>The tool accepts the answer only from the page that contains it, and only if that page is on one of the addresses listed as <code>embedOrigins</code> in <code>js/config.js</code> (the NGL website and a local copy at <code>localhost:8765</code>).</li>
+</ol>
+<p>Opened by itself, the tool asks for a normal sign-in. A local copy of the NGL website issues tokens that only it accepts, so to test this locally, serve the tool with <code>NGL_URL=http://localhost:8765 python serve.py</code> and set <code>InterpretationTools.cbtUrl</code> to <code>http://localhost:8000/</code>.</p>
+
+<h2 id="pages">Publishing the tool and this documentation</h2>
 <p>The documentation pages are HTML fragments in <code>docs/pages/</code>, wrapped in <code>docs/_layout.html</code> by <code>tools/build_docs.py</code> (Python standard library only). The script builds the whole published site into <code>_site/</code>: the tool at the root and the documentation in <code>_site/docs/</code>. It also checks every internal link.</p>
 <pre><code>python tools/build_docs.py           # build _site/
 python tools/build_docs.py --serve   # build, then serve at http://localhost:8081/docs/</code></pre>
-<p>Pushing to <code>main</code> runs <code>.github/workflows/pages.yml</code>, which builds <code>_site/</code> and publishes it to GitHub Pages. One-time setup in the repository: <b>Settings → Pages → Build and deployment → Source: GitHub Actions</b>.</p>
+<p><b>Vercel</b> runs the same script on every push (<code>buildCommand</code> in <code>vercel.json</code>) and publishes <code>_site/</code> (<code>outputDirectory</code>), so the tool and this documentation are deployed together. Leave Build Command and Output Directory empty in the Vercel project settings, since they override <code>vercel.json</code>.</p>
+<p><b>GitHub Pages</b> (optional): pushing to <code>main</code> also runs <code>.github/workflows/pages.yml</code>, which publishes <code>_site/</code> to GitHub Pages once Pages is turned on in the repository (<b>Settings → Pages → Build and deployment → Source: GitHub Actions</b>). GitHub Pages cannot relay to NGL, so loading from NGL does not work there.</p>
 <p>The screenshots in <code>docs/images/</code> are taken from the running tool with the examples loaded; retake them after changing the interface.</p>
 
 <h2 id="release">Releasing a new version</h2>
